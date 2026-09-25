@@ -1,0 +1,174 @@
+package io.github.deepakgsingh.dunecompanion.ui
+
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
+import io.github.deepakgsingh.dunecompanion.DuneActionEffectEvent
+import io.github.deepakgsingh.dunecompanion.GestureDebug
+import io.github.deepakgsingh.dunecompanion.Steward
+import io.github.deepakgsingh.dunecompanion.TapCounter
+
+@Composable
+fun DisplayScreen() {
+    val session by Steward.dune.collectAsState()
+    val urls by Steward.panelUrls.collectAsState()
+    val gestures by Steward.gestures.collectAsState()
+    val effect by Steward.duneEffects.collectAsState(initial = null as DuneActionEffectEvent?)
+    var showDebug by remember { mutableStateOf(false) }
+    var taps by remember { mutableStateOf(TapCounter()) }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Palette.Ink)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    // Fallback for a spin that will not register: a triple tap. Refused outside
+                    // agent turns exactly like a spin, so idle tapping between games is inert.
+                    onTap = {
+                        val (next, tripled) = taps.observe(System.currentTimeMillis())
+                        taps = next
+                        if (tripled) Steward.requestTapTurnEnd()
+                    },
+                    onLongPress = { showDebug = !showDebug },
+                )
+            },
+    ) {
+        if (session.active) {
+            DuneScene(session)
+            DuneActionEffects(effect, Modifier.fillMaxSize())
+            urls.firstOrNull()?.let {
+                Text(
+                    it,
+                    color = Palette.Ash,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp),
+                )
+            }
+        } else {
+            IdleCard(urls, onExit = Steward::requestQuit)
+        }
+        if (showDebug) DebugOverlay(gestures, onExit = Steward::requestQuit)
+    }
+}
+
+@Composable
+private fun IdleCard(urls: List<String>, onExit: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("ROUND STEWARD", color = Palette.Fire, fontSize = 26.sp,
+            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, letterSpacing = 3.sp)
+        Text("DUNE: IMPERIUM", color = Palette.Ash, fontSize = 13.sp,
+            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+        Spacer(Modifier.height(36.dp))
+        val url = urls.firstOrNull()
+        if (url == null) {
+            Text("NOT ON A NETWORK\nJOIN WI-FI OR START A HOTSPOT", color = Palette.Ember,
+                fontSize = 15.sp, textAlign = TextAlign.Center, fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold)
+        } else {
+            val qr = remember(url) { qrBitmap(url, 600) }
+            Image(qr.asImageBitmap(), contentDescription = "Panel address", modifier = Modifier.size(240.dp))
+            Spacer(Modifier.height(20.dp))
+            Text("SCAN WITH THE ADMIN PHONE", color = Palette.Ember, fontSize = 13.sp,
+                fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Spacer(Modifier.height(8.dp))
+            urls.forEach {
+                Text(it, color = Palette.Fire, fontSize = 18.sp, fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Black)
+            }
+        }
+        Spacer(Modifier.height(36.dp))
+        Text("SPIN FLAT = END AGENT TURN · SHAKE = REVEAL\nTRIPLE TAP = END AGENT TURN · HOLD = DEBUG / EXIT",
+            color = Palette.Ash, fontSize = 11.sp, textAlign = TextAlign.Center,
+            fontFamily = FontFamily.Monospace)
+        Spacer(Modifier.height(28.dp))
+        ExitButton("EXIT", onExit)
+    }
+}
+
+@Composable
+private fun DebugOverlay(g: GestureDebug, onExit: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().background(Color(0xE0000000)).padding(16.dp),
+    ) {
+        val lines = buildList {
+            add(if (g.armed) "ARMED" else "NOT ARMED (start a game)")
+            add("gravity %.1f %.1f %.1f  %s".format(g.gravity.first, g.gravity.second, g.gravity.third,
+                if (g.flat) "FLAT" else "not flat"))
+            add("spin %4.0f°   jolts %d".format(g.spinDegrees, g.shakeJolts))
+            add("spins ${g.spins}  refused ${g.spinsRejected}  shakes ${g.shakes}  taps ${g.taps}")
+            add("")
+            addAll(g.sensors.ifEmpty { listOf("no sensors reported") })
+        }
+        lines.forEach {
+            Text(it, color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+        }
+        Spacer(Modifier.height(16.dp))
+        // During a game this is the only way off the display without the admin panel. The game
+        // is saved, so closing mid-game and reopening carries on where it was.
+        ExitButton("EXIT APP · GAME IS SAVED", onExit)
+    }
+}
+
+@Composable
+private fun ExitButton(label: String, onExit: () -> Unit) {
+    Text(
+        label,
+        color = Palette.Fire,
+        fontSize = 14.sp,
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Black,
+        letterSpacing = 2.sp,
+        modifier = Modifier
+            .border(1.dp, Palette.Ash, RoundedCornerShape(10.dp))
+            .clickable(onClick = onExit)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+    )
+}
+
+private fun qrBitmap(text: String, size: Int): Bitmap {
+    val matrix = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, size, size)
+    // Plain black on white: phone camera apps are far less reliable reading an inverted or
+    // low-contrast code, and this is scanned once per game night, not looked at.
+    val pixels = IntArray(size * size) { i ->
+        if (matrix.get(i % size, i / size)) 0xFF000000.toInt() else 0xFFFFFFFF.toInt()
+    }
+    return Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888)
+}

@@ -1,0 +1,152 @@
+<!doctype html><html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Dune Companion</title>
+<style>
+  :root{--ink:#0a0806;--fire:#ff6820;--ember:#d04010;--ash:#8a3a0a;--char:#1e0e04}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--ink);color:var(--fire);font-family:ui-monospace,Menlo,Consolas,monospace;padding:18px 16px 40px}
+  h1{font-size:15px;letter-spacing:3px;margin:0 0 2px}.sub{font-size:11px;letter-spacing:2px;color:var(--ash);margin:0 0 18px}
+  h2{font-size:11px;letter-spacing:3px;color:var(--ash);margin:22px 0 8px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  label{display:block;color:var(--ash);font-size:10px;letter-spacing:2px;margin:12px 0 5px}
+  select,input,button{font:inherit;font-weight:800;color:var(--fire);background:var(--char);border:1px solid var(--ash);border-radius:10px;width:100%;padding:16px 8px}
+  button{font-size:15px;letter-spacing:1.5px;cursor:pointer}button:active{background:var(--ash);color:var(--ink)}button:disabled{opacity:.3}
+  input{font-size:13px;margin-top:6px;padding:12px 8px}input::placeholder{color:var(--ash)}
+  .wide{grid-column:1/3}.primary{border-color:var(--fire);font-size:19px;padding:22px 8px}.stop{color:var(--ember);border-color:var(--ember)}
+  #status{border:1px solid var(--ash);border-radius:10px;padding:16px;margin-bottom:14px;text-align:center;letter-spacing:1px}
+  .meta{font-size:12px;color:var(--ash);letter-spacing:2px}.phase{font-size:22px;font-weight:900;margin:8px 0}.player{font-size:18px;font-weight:900}
+  #turnTimer{font-size:54px;font-weight:900;line-height:1.15;margin:10px 0;color:var(--fire)}#turnTimer.pulse{animation:pulse .8s infinite alternate}#gameTimer{font-size:24px;font-weight:900;margin-top:12px;color:var(--fire)}@keyframes pulse{to{opacity:.3}}
+  .players{display:grid;gap:7px;margin:10px 0}.playerRow{display:grid;grid-template-columns:1fr auto;gap:6px 8px;align-items:center;border-bottom:1px solid #3b1b0a;padding:8px 0}.rowBtns{grid-column:1/3;display:grid;grid-template-columns:1fr 1fr;gap:6px}.playerRow button{font-size:11px;padding:11px 4px}.done{opacity:.45}.turnOrder{font-size:11px;letter-spacing:1px;color:var(--ash);border:1px solid #3b1b0a;border-radius:8px;padding:10px;margin:12px 0;line-height:1.6}.scoreCard{border:1px solid var(--fire);border-radius:10px;padding:14px;margin:14px 0}.scoreRow{display:grid;grid-template-columns:1fr 90px;gap:10px;align-items:center}.scoreRow input{margin:4px 0}.scoreRow input.missing{border-color:#ff4d2e;background:#2a0f06}.scoreCard select{margin:8px 0}
+  #game{display:none}#toast{position:fixed;left:0;right:0;bottom:0;background:var(--fire);color:var(--ink);text-align:center;padding:14px;font-weight:800;letter-spacing:2px;transform:translateY(100%);transition:transform .18s}#toast.show{transform:translateY(0)}
+  a.back{display:inline-block;color:var(--ash);text-decoration:none;font-size:11px;letter-spacing:2px;margin-bottom:14px}
+  #testbar{display:none;background:#ffb000;color:#1a0d00;font-weight:900;letter-spacing:2px;text-align:center;padding:12px;border-radius:8px;margin-bottom:14px;font-size:12px;line-height:1.5}
+</style></head><body>
+<h1>ROUND STEWARD</h1><p class="sub">DUNE: IMPERIUM · FAN-MADE, NOT AFFILIATED WITH DIRE WOLF</p>
+<section id="setup"><h2>SEATING · CLOCKWISE</h2>
+  <label>PLAYER COUNT</label><select id="count" onchange="seatCount()"><option value="3">3 PLAYERS</option><option value="4">4 PLAYERS</option></select>
+  <div class="grid">
+    <div><label>SEAT 1</label><select class="seat"><option>BLUE</option><option>GREEN</option><option>RED</option><option>YELLOW</option></select><input class="playerName" maxlength="32" autocomplete="off" placeholder="PLAYER NAME"><input class="playerName2" maxlength="32" autocomplete="off" placeholder="+ SHARING THIS COLOUR"></div>
+    <div><label>SEAT 2</label><select class="seat"><option>GREEN</option><option>BLUE</option><option>RED</option><option>YELLOW</option></select><input class="playerName" maxlength="32" autocomplete="off" placeholder="PLAYER NAME"><input class="playerName2" maxlength="32" autocomplete="off" placeholder="+ SHARING THIS COLOUR"></div>
+    <div><label>SEAT 3</label><select class="seat"><option>RED</option><option>BLUE</option><option>GREEN</option><option>YELLOW</option></select><input class="playerName" maxlength="32" autocomplete="off" placeholder="PLAYER NAME"><input class="playerName2" maxlength="32" autocomplete="off" placeholder="+ SHARING THIS COLOUR"></div>
+    <div id="seat4"><label>SEAT 4</label><select class="seat"><option>YELLOW</option><option>BLUE</option><option>GREEN</option><option>RED</option></select><input class="playerName" maxlength="32" autocomplete="off" placeholder="PLAYER NAME"><input class="playerName2" maxlength="32" autocomplete="off" placeholder="+ SHARING THIS COLOUR"></div>
+  </div>
+  <label>FIRST PLAYER</label><select id="first"><option>BLUE</option><option>GREEN</option><option>RED</option><option>YELLOW</option></select>
+  <div id="setupOrder" class="turnOrder"></div>
+  <button class="primary" style="margin-top:16px" onclick="startGame('live')">START GAME</button>
+</section>
+<section id="game"><div id="status"></div>
+  <button class="stop wide" style="margin-bottom:10px" onclick="endGame()">END GAME</button>
+  <div class="grid"><button id="pause" onclick="pauseGame()">PAUSE TIMER</button><button id="endRound" onclick="endRound()">END ROUND · NEXT ROUND</button></div>
+  <div id="turnControls" class="grid"><button class="primary" id="agentDone" onclick="fire('/dune/agent-done','AGENT TURN COMPLETE')">END AGENT TURN</button><button class="primary" id="revealDone" onclick="fire('/dune/reveal-done','REVEAL COMPLETE')">FINISH REVEAL</button></div>
+  <button id="undoTurn" style="margin-top:10px" onclick="undoTurn()">UNDO LAST TURN</button>
+  <button class="primary" id="phaseNext" style="margin-top:10px" onclick="fire('/dune/phase-next','PHASE COMPLETE')">BEGIN COMBAT</button>
+  <div id="turnOrder" class="turnOrder"></div>
+  <h2>PLAYERS · AGENTS REMAINING</h2><div class="players" id="players"></div>
+  <div class="scoreCard" id="scoreCard" style="display:none"><h2 id="scoreTitle">RECORD VICTORY POINTS</h2><div id="scoreInputs"></div><select id="scoreWinner" style="display:none"></select><button class="primary" onclick="submitScores()">SAVE CHECKPOINT</button></div>
+  <div class="grid"><button id="undo" onclick="fire('/dune/undo','UNDONE')">UNDO ROUND</button><button onclick="fire('/dune/replay','CUE REPLAYED')">REPLAY CUE</button></div>
+  <div class="grid" style="margin-top:10px"><button onclick="fire('/audio/test?clip=steward_speaker_test','TESTING SPEAKER')">TEST SPEAKER</button><button onclick="fire('/audio/reset','AUDIO CLEARED')">CLEAR AUDIO QUEUE</button></div>
+  <h2>DECLARE WINNER</h2><div class="grid" id="winners"></div></section>
+<h2>GESTURES · SPIKE DEBUG</h2><div id="gestures" class="turnOrder">…</div>
+<button onclick="fire('/debug/reset-counts','COUNTS RESET')">RESET GESTURE COUNTS</button>
+<div id="toast"></div>
+<script>
+var latest={},timer,toastEl=document.getElementById('toast');
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(timer);timer=setTimeout(function(){toastEl.classList.remove('show')},1400)}
+function seatCount(){document.getElementById('seat4').style.display=document.getElementById('count').value==='4'?'block':'none';previewOrder()}seatCount();
+// Seating happens while people are still sitting down, so colours get reassigned constantly.
+// Picking a colour another seat already holds swaps the two rather than leaving a duplicate
+// for the host to spot and unpick by hand. All four seats take part, including a hidden seat 4
+// — otherwise parking a colour there resurfaces as a duplicate on switching to four players.
+// Since every seat offers all four colours and every change is a swap, the chart stays a
+// permutation and duplicates stop being possible at all.
+// Names stay in their own row: the person has not moved, only the colour they are playing.
+function swapSeatColour(sel){
+ var seats=document.querySelectorAll('.seat'),now=sel.value,was=sel.dataset.prev;
+ for(var i=0;i<seats.length;i++){if(seats[i]!==sel&&seats[i].value===now){seats[i].value=was;seats[i].dataset.prev=was}}
+ sel.dataset.prev=now;previewOrder();
+}
+document.querySelectorAll('.seat').forEach(function(s){s.dataset.prev=s.value;s.addEventListener('change',function(){swapSeatColour(s)})});
+// Seat order IS turn order — playerColors is rotated by index all game. Show the resulting
+// sequence back so a mis-entered seating is caught here rather than three rounds in.
+function previewOrder(){
+ var el=document.getElementById('setupOrder');if(!el)return;
+ var n=+document.getElementById('count').value,seats=document.querySelectorAll('.seat'),
+     names=document.querySelectorAll('.playerName'),mates=document.querySelectorAll('.playerName2'),
+     first=document.getElementById('first').value.toLowerCase(),cols=[];
+ for(var i=0;i<n;i++)cols.push(seats[i].value.toLowerCase());
+ var start=cols.indexOf(first);
+ if(new Set(cols).size!==cols.length){el.innerHTML='TURN ORDER · COLOURS MUST BE UNIQUE';return}
+ if(start<0){el.innerHTML='TURN ORDER · FIRST PLAYER NOT SEATED';return}
+ var out=[];
+ for(var j=0;j<n;j++){var idx=(start+j)%n,nm=seatName(names,mates,idx);
+   out.push((nm?esc(nm)+' · ':'')+cols[idx].toUpperCase()+(j===0?' ★':''))}
+ el.innerHTML='TURN ORDER · CLOCKWISE<br>'+out.join('  →  ');
+}
+document.addEventListener('input',previewOrder);document.addEventListener('change',previewOrder);
+function selectedColors(){var n=+document.getElementById('count').value,s=document.querySelectorAll('.seat'),a=[];for(var i=0;i<n;i++)a.push(s[i].value.toLowerCase());return a}
+// What a seat is called when two people share it. Matches DuneSession.seatName on the app side.
+function seatName(names,mates,i){return [(names[i].value||'').trim(),(mates[i].value||'').trim()].filter(Boolean).join(' & ')}
+function startGame(mode){var c=selectedColors(),n=+document.getElementById('count').value,f=document.getElementById('first').value.toLowerCase(),p='/dune/start?mode='+mode+'&colors='+c.join(',')+'&first='+f,inputs=document.querySelectorAll('.playerName'),mates=document.querySelectorAll('.playerName2');if(new Set(c).size!==c.length){toast('COLORS MUST BE UNIQUE');return}if(c.indexOf(f)<0){toast('FIRST PLAYER NOT SEATED');return}for(var i=0;i<n;i++){var name=inputs[i].value.trim(),mate=mates[i].value.trim();if(name)p+='&name'+i+'='+encodeURIComponent(name);if(mate)p+='&name'+i+'b='+encodeURIComponent(mate)}fire(p,'GAME STARTED')}
+function fire(path,msg){fetch(path).then(function(r){return r.json().catch(function(){return {}}).then(function(j){if(!r.ok)throw Error(j.error||'FAILED');toast(msg);refresh()})}).catch(function(e){toast(e.message||'NO CONNECTION')})}
+function endGame(c){if(c){fire('/dune/end?winner='+c,c.toUpperCase()+' WINS');return}if(window.confirm('END THE CURRENT GAME?')){fire('/dune/end-game','GAME ENDED')}}
+function pauseGame(){fire('/dune/pause',latest.paused?'TIMER RESUMED':'GAME TIMER PAUSED')}
+function endRound(){if(window.confirm('END THIS ROUND AND START THE NEXT ROUND?')){fire('/dune/end-round','NEXT ROUND STARTED')}}
+// No confirm: this is the recovery path for a turn a spin or shake ended by accident, and a
+// dialog in the way of that is the reason someone reaches for the panel instead. Tapping it
+// wrongly costs one spin to put back.
+function undoTurn(){fire('/dune/undo-turn','TURN HANDED BACK')}
+function refresh(){fetch('/dune/state').then(function(r){return r.json()}).then(function(s){s.receivedAtMs=Date.now();latest=s;render(s)}).catch(function(){toast('NO CONNECTION')})}
+function fmt(ms){var t=Math.max(0,Math.floor(ms/1000)),m=Math.floor(t/60),q=t%60;return String(m).padStart(2,'0')+':'+String(q).padStart(2,'0')}
+function tick(){if(!latest.active)return;var gameEl=document.getElementById('gameTimer');if(gameEl){var running=!latest.paused&&!latest.winner,gameMs=(latest.gameElapsedMs||0)+(running?Date.now()-(latest.receivedAtMs||Date.now()):0);gameEl.textContent='GAME TIME · '+fmt(gameMs)}var el=document.getElementById('turnTimer');if(!el)return;var timed=latest.phase==='turns'&&latest.currentPlayer;if(!timed)return;var clock=latest.paused?(latest.pausedAtMs||Date.now()):Date.now(),ms=clock-latest.turnStartedAtMs;el.textContent=fmt(ms);el.classList.toggle('pulse',!latest.paused&&ms>=420000)}
+function swordmaster(c){fire('/dune/swordmaster?color='+c,c.toUpperCase()+' SWORDMASTER TOGGLED')}
+function council(c){fire('/dune/high-council?color='+c,'HIGH COUNCIL UPDATED')}
+// Every seat is required — a partial checkpoint would publish a wrong scoreboard live —
+// so name the seats that are blank and outline them rather than just refusing.
+function submitScores(){var p='/dune/checkpoint?',missing=[],cols=(latest.colors||[]);cols.forEach(function(c){var el=document.getElementById('vp-'+c),v=el?el.value.trim():'';if(v===''){missing.push(c);if(el)el.classList.add('missing')}else if(el){el.classList.remove('missing')}p+='vp_'+c+'='+encodeURIComponent(v)+'&'});if(missing.length){toast('MISSING SCORE · '+missing.join(', ').toUpperCase());return}var final=latest.round>=10||document.getElementById('scoreCard').dataset.final==='true';if(final){var w=document.getElementById('scoreWinner').value;if(!w){toast('CHOOSE THE WINNER');return}p+='final=true&winner='+w}fire(p,'VICTORY POINTS SAVED')}
+function esc(v){return String(v||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function playerLabel(s,c){var name=s.playerNames&&s.playerNames[c]?esc(s.playerNames[c])+' · ':'';return name+c.toUpperCase()}
+function render(s){document.getElementById('setup').style.display=s.active?'none':'block';document.getElementById('game').style.display=s.active?'block':'none';if(!s.active)return;
+ var who=s.currentPlayer?playerLabel(s,s.currentPlayer):(s.turnsComplete&&s.phase==='turns'?'TURNS COMPLETE':s.phaseName),timed=s.phase==='turns'&&s.currentPlayer;
+ document.getElementById('status').innerHTML='<div class="meta">ROUND '+s.round+' · CONFLICT '+s.conflict+'</div><div class="phase">'+(s.winner?'GAME COMPLETE':s.phaseName)+'</div><div class="player">'+(s.winner?playerLabel(s,s.winner)+' WINS':who)+'</div>'+(s.paused?'<div class="meta">GAME TIMER PAUSED</div>':'')+(timed&&!s.winner?'<div id="turnTimer">00:00</div>':'')+'<div id="gameTimer">GAME TIME · 00:00</div>';
+ document.getElementById('turnControls').style.display=s.phase==='turns'&&!s.turnsComplete?'grid':'none';
+ document.getElementById('agentDone').disabled=!!s.paused||!s.currentPlayer;
+ document.getElementById('revealDone').disabled=!!s.paused;
+ document.getElementById('pause').textContent=s.paused?'RESUME TIMER':'PAUSE TIMER';document.getElementById('pause').disabled=!!s.winner||s.phase!=='turns'||!s.currentPlayer;
+ document.getElementById('endRound').disabled=!!s.winner||s.round>=10;
+ var labels={turns:'BEGIN COMBAT',combat:'COMPLETE COMBAT',"combat-complete":'MAKERS START AUTOMATICALLY',makers:'RECALL STARTS AUTOMATICALLY',recall:(s.round>=10?'FINAL ROUND':'NEXT ROUND STARTS AUTOMATICALLY')};var next=document.getElementById('phaseNext');next.textContent=labels[s.phase]||s.phaseName;next.disabled=!!s.winner||!!s.paused||(s.phase==='turns'&&!s.turnsComplete)||s.phase==='combat-complete'||s.phase==='makers'||s.phase==='recall';
+ document.getElementById('undo').disabled=!s.undoAvailable||!!s.winner;
+ // Name whoever gets the turn back, so the tap can be checked before it happens — the person
+ // holding the panel is usually not the person the steward skipped.
+ var undoT=document.getElementById('undoTurn');
+ undoT.textContent=s.turnUndoPlayer?'UNDO TURN · BACK TO '+playerLabel(s,s.turnUndoPlayer):'NO TURN TO UNDO';
+ undoT.disabled=!s.turnUndoPlayer||!!s.winner;
+ document.getElementById('turnOrder').innerHTML='TURN ORDER · '+(s.turnOrder||s.colors).map(function(c){
+   var mark=c===s.currentPlayer?'▸':'';return mark+playerLabel(s,c)+(c===s.first?' ★':'')}).join('  →  ');
+ document.getElementById('players').innerHTML=s.colors.map(function(c){var done=s.revealedPlayers.indexOf(c)>=0,third=s.thirdAgentPlayers.indexOf(c)>=0,councilled=s.highCouncilPlayers.indexOf(c)>=0;return '<div class="playerRow '+(done?'done':'')+'"><b>'+playerLabel(s,c)+'</b><span>'+(done?'REVEALED':'IN PLAY')+'</span><div class="rowBtns"><button '+(s.paused?'disabled':'')+' onclick="swordmaster(\''+c+'\')">'+(third?'SWORD ✓':'SWORD')+'</button><button onclick="council(\''+c+'\')">'+(councilled?'COUNCIL ✓':'COUNCIL')+'</button></div></div>'}).join('');
+ renderScoreCard(s);
+ document.getElementById('winners').innerHTML=s.colors.map(function(c){return '<button class="stop" onclick="showFinalScores(\''+c+'\')">'+c.toUpperCase()+' WINS</button>'}).join('');tick()}
+// The card is rebuilt only when the round, the seating, or final-mode actually changes.
+// It used to be rebuilt on every 3s poll, which wiped whatever score the host was part
+// way through typing — so the checkpoint could never be completed, and the same poll
+// also re-hid the final-scores card straight after the WINS button opened it.
+function renderScoreCard(s){
+ var score=document.getElementById('scoreCard');
+ var recorded=(s.scoreCheckpoints||[]).some(function(c){return c.conflict===s.round});
+ if(recorded||s.winner)score.dataset.manual='';
+ var manual=score.dataset.manual==='true',show=!!s.checkpointRequired||manual;
+ score.style.display=show?'block':'none';
+ if(!show){score.dataset.sig='';return}
+ var final=manual||s.round>=10,cols=s.colors||[];
+ score.dataset.final=String(final);
+ var sig=s.round+'|'+cols.join(',')+'|'+final;
+ if(score.dataset.sig===sig)return;
+ score.dataset.sig=sig;
+ document.getElementById('scoreTitle').textContent=final?'FINAL SCORES · CHOOSE WINNER':'CONFLICT '+s.round+' · VICTORY POINTS';
+ document.getElementById('scoreInputs').innerHTML=cols.map(function(c){return '<label class="scoreRow"><span>'+playerLabel(s,c)+'</span><input id="vp-'+c+'" type="number" min="0" max="20" inputmode="numeric" placeholder="VP"></label>'}).join('');
+ var winner=document.getElementById('scoreWinner');winner.style.display=final?'block':'none';
+ winner.innerHTML='<option value="">CHOOSE WINNER</option>'+cols.map(function(c){return '<option value="'+c+'">'+playerLabel(s,c)+'</option>'}).join('')}
+function showFinalScores(c){var score=document.getElementById('scoreCard');score.dataset.manual='true';score.dataset.sig='';renderScoreCard(latest);document.getElementById('scoreWinner').value=c;score.scrollIntoView({behavior:'smooth'})}
+function gestures(){fetch('/debug/state').then(function(r){return r.json()}).then(function(g){
+ document.getElementById('gestures').innerHTML=(g.armed?'ARMED':'NOT ARMED')+' · '+(g.flat?'FLAT':'NOT FLAT')+' · SPIN '+Math.round(g.spinDegrees)+'°<br>SPINS '+g.spins+' · REFUSED '+g.spinsRejected+' · SHAKES '+g.shakes+' · TAPS '+g.taps+'<br>'+g.sensors.map(esc).join('<br>')}).catch(function(){})}
+refresh();gestures();setInterval(refresh,1000);setInterval(gestures,1000);setInterval(tick,1000);
+</script></body></html>

@@ -25,7 +25,10 @@ import io.github.deepakgsingh.dunecompanion.AudioSequence
 import io.github.deepakgsingh.dunecompanion.DuneActionResult
 import io.github.deepakgsingh.dunecompanion.DunePhase
 import io.github.deepakgsingh.dunecompanion.DuneSession
+import io.github.deepakgsingh.dunecompanion.DuneHistoryStore
 import io.github.deepakgsingh.dunecompanion.DuneSessionStore
+import io.github.deepakgsingh.dunecompanion.duneAutoAdvance
+import io.github.deepakgsingh.dunecompanion.duneHistoryJson
 import io.github.deepakgsingh.dunecompanion.DuneTimerMark
 import io.github.deepakgsingh.dunecompanion.DuneTone
 import io.github.deepakgsingh.dunecompanion.Steward
@@ -82,8 +85,10 @@ class StewardService : Service() {
     // Voice packs, if a table records one, go here: filesDir/clips/<name>.<ext>. Anything
     // installed wins over speech; see DuneSpeech for the names.
     private val clipsDir by lazy { File(filesDir, "clips").apply { mkdirs() } }
+    private val duneStore by lazy { DuneSessionStore(applicationContext) }
+    private val historyStore by lazy { DuneHistoryStore(applicationContext) }
     private val panelServer by lazy {
-        PanelServer(clipsDir, assets.open("panel.html").bufferedReader().use { it.readText() })
+        PanelServer(clipsDir, historyStore, assets.open("panel.html").bufferedReader().use { it.readText() })
     }
 
     private var tts: TextToSpeech? = null
@@ -98,7 +103,6 @@ class StewardService : Service() {
         super.onCreate()
         startForeground(NOTIF_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
 
-        val duneStore = DuneSessionStore(applicationContext)
         Steward.postDune(duneStore.load())
 
         tts = TextToSpeech(applicationContext) { status ->
@@ -122,7 +126,13 @@ class StewardService : Service() {
         scope.launch(Dispatchers.Main) { runAudioWorker() }
         scope.launch { Steward.audioRequest.collect { enqueue(it) } }
         scope.launch { Steward.audioReset.collect { resetAudio() } }
-        scope.launch { Steward.dune.drop(1).collect { duneStore.save(it) } }
+        scope.launch {
+            Steward.dune.drop(1).collect { session ->
+                duneStore.save(session)
+                // A game joins the history the moment it has a winner. Idempotent per game.
+                if (session.winner != null) historyStore.appendIfNew(duneHistoryJson(session))
+            }
+        }
         scope.launch { watchDuneTurnTimer() }
         scope.launch { watchDuneAutomatedPhases() }
         scope.launch { watchPanelUrls() }
@@ -131,9 +141,8 @@ class StewardService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
-            // The game is already saved on every change, so stopping loses nothing: the next
-            // launch picks it up where it was.
-            Steward.requestQuit()
+            // The game is kept, clocks frozen, for the next launch to pick up where it was.
+            quitApp(endGame = false)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
@@ -142,6 +151,9 @@ class StewardService : Service() {
     }
 
     override fun onDestroy() {
+        // The save loop is cancelled below and may not have caught the last change: a quit's
+        // pause or reset lands a moment before this. Written here so it cannot be lost.
+        duneStore.save(Steward.dune.value)
         runCatching { nsdListener?.let { nsd?.unregisterService(it) } }
         panelServer.stop()
         audioQueue.close()
@@ -208,14 +220,10 @@ class StewardService : Service() {
                     return@withDuneLock
                 }
                 val revealTurnsComplete = session.phase == DunePhase.TURNS && session.turnsComplete
-                val combatCompleteReady = session.phase == DunePhase.COMBAT_COMPLETE &&
-                    nowMs - session.phaseStartedAtMs >= Config.DUNE_COMBAT_TO_MAKERS_DELAY_MS
-                val automatedPhaseReady = session.phase in setOf(DunePhase.MAKERS, DunePhase.RECALL) &&
-                    !(session.phase == DunePhase.RECALL && session.round >= 10) &&
-                    nowMs - session.phaseStartedAtMs >= Config.DUNE_AUTOMATED_PHASE_MS
+                val automatedPhaseReady = duneAutoAdvance(session)?.let { nowMs >= it.dueAtMs } == true
                 if (
                     session.active && !session.showingWinner &&
-                    !session.paused && (revealTurnsComplete || combatCompleteReady || automatedPhaseReady)
+                    !session.paused && (revealTurnsComplete || automatedPhaseReady)
                 ) {
                     val result = advanceDunePhase(session, nowMs)
                     if (result is DuneActionResult.Success) {

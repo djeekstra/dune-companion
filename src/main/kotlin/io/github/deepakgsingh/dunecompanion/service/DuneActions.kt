@@ -11,6 +11,7 @@ import io.github.deepakgsingh.dunecompanion.DuneSession
 import io.github.deepakgsingh.dunecompanion.Steward
 import io.github.deepakgsingh.dunecompanion.duneAlreadyRevealedClips
 import io.github.deepakgsingh.dunecompanion.duneNextTurnClips
+import io.github.deepakgsingh.dunecompanion.duneSessionForExit
 import io.github.deepakgsingh.dunecompanion.duneSkippedRevealedPlayers
 import io.github.deepakgsingh.dunecompanion.duneTransitionBed
 import io.github.deepakgsingh.dunecompanion.duneTransitionClips
@@ -57,6 +58,18 @@ internal fun applyDuneResult(
         Steward.emitAudioClips(toPlay, duneTransitionBed(previous, result.session))
         result.session
     }
+}
+
+/**
+ * Closes the app from the display or the notification. Keeping the game freezes its clocks for
+ * the next launch; ending it throws it away, exactly as END GAME on the panel does.
+ */
+fun quitApp(endGame: Boolean) {
+    withDuneLock {
+        val session = Steward.dune.value
+        Steward.postDune(if (endGame) DuneSession() else duneSessionForExit(session, System.currentTimeMillis()))
+    }
+    Steward.requestQuit()
 }
 
 /** Runs one read-modify-write of the Dune session to the exclusion of all others. */

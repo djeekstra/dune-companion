@@ -1,8 +1,12 @@
 package io.github.deepakgsingh.dunecompanion.ui
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,6 +42,7 @@ import com.google.zxing.qrcode.QRCodeWriter
 import io.github.deepakgsingh.dunecompanion.DuneActionEffectEvent
 import io.github.deepakgsingh.dunecompanion.GestureDebug
 import io.github.deepakgsingh.dunecompanion.Steward
+import io.github.deepakgsingh.dunecompanion.service.quitApp
 import io.github.deepakgsingh.dunecompanion.TapCounter
 
 @Composable
@@ -53,6 +58,9 @@ fun DisplayScreen() {
         Modifier
             .fillMaxSize()
             .background(Palette.Ink)
+            // Clear of the camera hole: on a Pixel 4a it sits over the top-left corner, and ate
+            // the start of "ROUND 2".
+            .windowInsetsPadding(WindowInsets.displayCutout)
             .pointerInput(Unit) {
                 detectTapGestures(
                     // Fallback for a spin that will not register: a triple tap. Refused outside
@@ -80,9 +88,9 @@ fun DisplayScreen() {
                 )
             }
         } else {
-            IdleCard(urls, onExit = Steward::requestQuit)
+            IdleCard(urls, onExit = { quitApp(endGame = false) })
         }
-        if (showDebug) DebugOverlay(gestures, onExit = Steward::requestQuit)
+        if (showDebug) DebugOverlay(gestures, gameRunning = session.active)
     }
 }
 
@@ -93,7 +101,7 @@ private fun IdleCard(urls: List<String>, onExit: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("ROUND STEWARD", color = Palette.Fire, fontSize = 26.sp,
+        Text("GAME COMPANION", color = Palette.Fire, fontSize = 26.sp,
             fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, letterSpacing = 3.sp)
         Text("DUNE: IMPERIUM", color = Palette.Ash, fontSize = 13.sp,
             fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
@@ -126,7 +134,7 @@ private fun IdleCard(urls: List<String>, onExit: () -> Unit) {
 }
 
 @Composable
-private fun DebugOverlay(g: GestureDebug, onExit: () -> Unit) {
+private fun DebugOverlay(g: GestureDebug, gameRunning: Boolean) {
     Column(
         Modifier.fillMaxWidth().background(Color(0xE0000000)).padding(16.dp),
     ) {
@@ -144,9 +152,21 @@ private fun DebugOverlay(g: GestureDebug, onExit: () -> Unit) {
             Text(it, color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
         }
         Spacer(Modifier.height(16.dp))
-        // During a game this is the only way off the display without the admin panel. The game
-        // is saved, so closing mid-game and reopening carries on where it was.
-        ExitButton("EXIT APP · GAME IS SAVED", onExit)
+        if (!gameRunning) {
+            ExitButton("EXIT", onExit = { quitApp(endGame = false) })
+        } else {
+            // During a game this is the only way off the display without the admin panel.
+            // Keeping it freezes the clocks, so reopening does not find a turn that ran on
+            // while the app was shut. Ending it throws the game away, so it takes a second tap.
+            var confirmEnd by remember { mutableStateOf(false) }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ExitButton("EXIT · KEEP GAME", onExit = { quitApp(endGame = false) })
+                ExitButton(
+                    if (confirmEnd) "TAP AGAIN TO END" else "EXIT · END GAME",
+                    onExit = { if (confirmEnd) quitApp(endGame = true) else confirmEnd = true },
+                )
+            }
+        }
     }
 }
 

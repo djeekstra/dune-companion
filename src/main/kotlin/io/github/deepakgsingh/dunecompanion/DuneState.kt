@@ -181,6 +181,32 @@ fun duneGameElapsedMs(session: DuneSession, nowMs: Long): Long {
     return (effectiveNow - session.gameStartedAtMs).coerceAtLeast(0L)
 }
 
+/**
+ * A phase that moves on by itself: what comes next, and when.
+ *
+ * The one place the timing lives, so the service that advances the phase and the countdowns on
+ * the display and the panel cannot disagree about it.
+ */
+data class DuneAutoAdvance(val next: String, val startedAtMs: Long, val dueAtMs: Long) {
+    val durationMs: Long get() = dueAtMs - startedAtMs
+}
+
+/** Null when the phase waits for someone: player turns, combat, a score checkpoint, the end. */
+fun duneAutoAdvance(session: DuneSession): DuneAutoAdvance? {
+    if (!session.active || session.showingWinner || session.paused) return null
+    val (next, delayMs) = when (session.phase) {
+        DunePhase.COMBAT_COMPLETE ->
+            if (session.checkpointRequired) return null
+            else DunePhase.MAKERS.displayName to Config.DUNE_COMBAT_TO_MAKERS_DELAY_MS
+        DunePhase.MAKERS -> DunePhase.RECALL.displayName to Config.DUNE_AUTOMATED_PHASE_MS
+        DunePhase.RECALL ->
+            if (session.round >= 10) return null
+            else "ROUND ${session.round + 1}" to Config.DUNE_AUTOMATED_PHASE_MS
+        else -> return null
+    }
+    return DuneAutoAdvance(next, session.phaseStartedAtMs, session.phaseStartedAtMs + delayMs)
+}
+
 fun duneHourlyCueFilename(hour: Int): String =
     if (hour in 1..5) "dune_game_hour_$hour.wav" else "dune_game_another_hour.wav"
 
@@ -638,6 +664,18 @@ fun toggleDunePause(session: DuneSession, nowMs: Long): DuneActionResult {
     )
 }
 
+/**
+ * The game as it is left when the app is closed: the clocks frozen, when they can be.
+ *
+ * Every clock runs off wall-clock timestamps, so without this a closed app kept charging the
+ * time it was shut to whoever had the turn, and reopening it looked as if it had never stopped.
+ * Only player turns can be paused, because only they can be resumed from the panel; a phase
+ * that runs by itself just carries on when the app comes back.
+ */
+fun duneSessionForExit(session: DuneSession, nowMs: Long): DuneSession =
+    if (session.paused) session
+    else (toggleDunePause(session, nowMs) as? DuneActionResult.Success)?.session ?: session
+
 fun markDuneTimerWarning(
     session: DuneSession,
     fiveMinutes: Boolean = false,
@@ -843,13 +881,55 @@ fun dunePhaseCueFilename(phase: DunePhase): String? = when (phase) {
 fun duneTransitionClips(previous: DuneSession, next: DuneSession): List<ClipSpec> = buildList {
     val phaseChanged = previous.phase != next.phase
     val newSession = !previous.active && next.active || previous.gameStartedAtMs != next.gameStartedAtMs
+    // A score entry is read back before anything else it caused, so the final scores are
+    // heard ahead of the winner rather than after the congratulations.
+    if (next.scoreCheckpoints.size > previous.scoreCheckpoints.size) {
+        addAll(duneStandingsClips(next, next.scoreCheckpoints.last()))
+    }
     when {
         next.winner != null -> add(ClipSpec(duneWinnerCueFilename(next.winner), DUNE_CUE_BOOST))
         phaseChanged || newSession ->
             if (next.phase == DunePhase.TURNS) addAll(duneConflictClips(next))
-            else dunePhaseCueFilename(next.phase)?.let { add(ClipSpec(it, DUNE_CUE_BOOST)) }
+            else {
+                dunePhaseCueFilename(next.phase)?.let { add(ClipSpec(it, DUNE_CUE_BOOST)) }
+                duneCheckpointDueClip(next)?.let(::add)
+            }
     }
 }
+
+/**
+ * "Halfway point. Update the scores." — said when the round stops for victory points.
+ *
+ * The round cannot move on until the scores are in, and the only other sign of that is the
+ * score card on the panel, which nobody at the table is looking at.
+ */
+fun duneCheckpointDueClip(session: DuneSession): ClipSpec? =
+    if (session.checkpointRequired) ClipSpec("dune_checkpoint_due_%02d.wav".format(session.round), DUNE_CUE_BOOST)
+    else null
+
+/**
+ * "At the halfway point," then "Naini" + "has seven points." for every seat, leader first.
+ *
+ * Leader first because that is the question the table is asking; ties keep seat order, so the
+ * reading is stable rather than reshuffling seats that are level. Each seat is a name spliced
+ * onto a whole clause, the same seam as every other named cue, so a new player still costs
+ * one clip. A final checkpoint opens with its own line whichever round it lands in, since the
+ * game can be called before the tenth conflict.
+ */
+fun duneStandingsClips(session: DuneSession, checkpoint: DuneScoreCheckpoint): List<ClipSpec> = buildList {
+    val intro = if (checkpoint.final) "dune_standings_final.wav"
+    else "dune_standings_%02d.wav".format(checkpoint.conflict)
+    add(ClipSpec(intro, DUNE_CUE_BOOST))
+    session.playerColors
+        .filter { it in checkpoint.victoryPoints }
+        .sortedByDescending { checkpoint.victoryPoints.getValue(it) }
+        .forEach { color ->
+            add(duneNameClip(session, color))
+            add(ClipSpec(dunePointsPhrase(checkpoint.victoryPoints.getValue(color)), DUNE_CUE_BOOST))
+        }
+}
+
+fun dunePointsPhrase(points: Int): String = "dune_phrase_points_%02d.wav".format(points)
 
 private const val MAX_PLAYER_NAME_LENGTH = 32
 private val SCORE_CHECKPOINT_ROUNDS = setOf(5, 9, 10)

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application") version "8.5.0"
     id("org.jetbrains.kotlin.android") version "2.0.0"
@@ -7,6 +9,23 @@ plugins {
 android {
     namespace = "io.github.deepakgsingh.dunecompanion"
     compileSdk = 34
+
+    // The release key lives outside git, in keystore.properties (see README). Without it a
+    // release build falls back to the debug key, which is fine locally but must never be
+    // distributed: testers could not update to a build signed with another key.
+    val keystoreProperties = rootProject.file("keystore.properties").takeIf { it.exists() }?.let { file ->
+        Properties().apply { file.inputStream().use(::load) }
+    }
+    signingConfigs {
+        if (keystoreProperties != null) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "io.github.deepakgsingh.dunecompanion"
@@ -18,12 +37,10 @@ android {
 
     buildTypes {
         release {
-            // Signed with the debug key until there is a release key, so a shrunk build can be
-            // installed and tested.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
     compileOptions {

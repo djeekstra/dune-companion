@@ -8,6 +8,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,7 +40,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.deepakgsingh.dunecompanion.Config
+import io.github.deepakgsingh.dunecompanion.DuneAutoAdvance
 import io.github.deepakgsingh.dunecompanion.DunePhase
+import io.github.deepakgsingh.dunecompanion.duneAutoAdvance
 import io.github.deepakgsingh.dunecompanion.DuneSession
 import io.github.deepakgsingh.dunecompanion.duneGameElapsedMs
 import kotlinx.coroutines.delay
@@ -68,9 +76,10 @@ private fun DunePhaseCard(session: DuneSession) {
         ),
         label = "dunePhaseAlpha",
     )
-    Box(
-        Modifier.fillMaxSize().background(Palette.Ink),
-        contentAlignment = Alignment.Center,
+    Column(
+        Modifier.fillMaxSize().background(Palette.Ink).padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
         Text(
             session.phase.displayName,
@@ -81,7 +90,52 @@ private fun DunePhaseCard(session: DuneSession) {
             letterSpacing = 3.sp,
             textAlign = TextAlign.Center,
         )
+        Spacer(Modifier.height(40.dp))
+        val auto = duneAutoAdvance(session)
+        if (auto != null) AutoAdvanceCountdown(auto)
+        else waitingFor(session)?.let { PhaseHint(it) }
     }
+}
+
+// Collect your rewards, Makers and Recall all move on by themselves, and a table that doesn't
+// know that will sit waiting for someone to press something. The draining bar says "this is
+// about to change, and to what" without anyone having to read the panel.
+@Composable
+private fun AutoAdvanceCountdown(auto: DuneAutoAdvance) {
+    var now by remember(auto) { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(auto) {
+        while (true) {
+            now = System.currentTimeMillis()
+            delay(50L)
+        }
+    }
+    val remainingMs = (auto.dueAtMs - now).coerceIn(0L, auto.durationMs)
+    val fraction = if (auto.durationMs <= 0L) 0f else remainingMs.toFloat() / auto.durationMs
+    PhaseHint("${auto.next} IN ${(remainingMs + 999L) / 1_000L}")
+    Spacer(Modifier.height(14.dp))
+    Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Palette.Char)) {
+        Box(Modifier.fillMaxWidth(fraction).fillMaxHeight().background(Palette.Ember))
+    }
+}
+
+/** What the table has to do before the phase can move on, when it will not move by itself. */
+private fun waitingFor(session: DuneSession): String? = when {
+    session.checkpointRequired -> "ENTER SCORES ON THE PANEL"
+    session.phase == DunePhase.COMBAT -> "SHAKE WHEN COMBAT IS RESOLVED"
+    else -> null
+}
+
+@Composable
+private fun PhaseHint(text: String) {
+    Text(
+        text,
+        color = Palette.Ember,
+        fontSize = 18.sp,
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Black,
+        letterSpacing = 2.sp,
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable
@@ -160,7 +214,9 @@ private fun DuneRoundCard(session: DuneSession) {
             )
             if (session.paused) {
                 Text(
-                    "GAME TIMER PAUSED",
+                    // Resuming is a panel job, and a table reopening the app after a break
+                    // would otherwise stare at a frozen clock with no idea why.
+                    "GAME TIMER PAUSED\nRESUME ON THE PANEL",
                     color = Palette.Fire,
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center,
@@ -181,20 +237,51 @@ private fun DuneRoundCard(session: DuneSession) {
             }
         }
         Spacer(Modifier.weight(1f))
-        Text(
-            // Reveal state, not a tally: the one thing about a player that is certain, that the
-            // round actually turns on, and that nobody has to take the app's word for.
-            session.playerColors.joinToString("  ") { color ->
-                val mark = if (color in session.revealedPlayers) "✓" else "–"
-                "${color.displayName.first()}·$mark"
-            },
-            color = Palette.Ash,
-            fontSize = 14.sp,
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.5.sp,
-        )
+        RevealRow(session)
     }
+}
+
+/**
+ * Who has revealed: each seat's initial in a circle, filled once they have.
+ *
+ * Reveal state, not a tally: the one thing about a player that is certain, that the round
+ * actually turns on, and that nobody has to take the app's word for. Labelled, because a row of
+ * letters and dashes meant nothing to anyone who hadn't been told.
+ */
+@Composable
+private fun RevealRow(session: DuneSession) {
+    val revealed = session.playerColors.count { it in session.revealedPlayers }
+    Text(
+        "REVEALED $revealed OF ${session.playerColors.size}",
+        color = Palette.Ash,
+        fontSize = 12.sp,
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 2.sp,
+    )
+    Spacer(Modifier.height(10.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        session.playerColors.forEach { color ->
+            val revealed = color in session.revealedPlayers
+            Box(
+                Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, Palette.Fire, CircleShape)
+                    .background(if (revealed) Palette.Fire else Color.Transparent),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    color.displayName.first().toString(),
+                    color = if (revealed) Palette.Ink else Palette.Fire,
+                    fontSize = 15.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Black,
+                )
+            }
+        }
+    }
+    Spacer(Modifier.height(24.dp))
 }
 
 @Composable

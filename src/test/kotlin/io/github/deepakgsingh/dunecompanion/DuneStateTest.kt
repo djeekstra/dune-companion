@@ -453,6 +453,83 @@ class DuneStateTest {
         val ended = (recordDuneScoreCheckpoint(final, points, 5L, final = true, winner = DunePlayerColor.RED) as DuneActionResult.Success).session
         assertEquals(DunePlayerColor.RED, ended.winner)
         assertTrue(ended.scoreCheckpoints.single().final)
+        val clips = duneTransitionClips(final, ended).map { it.name }
+        assertEquals("dune_standings_final.wav", clips.first())
+        assertEquals(listOf("dune_name_red.wav", "dune_phrase_points_12.wav"), clips.subList(1, 3))
+        assertEquals("dune_winner_red.wav", clips.last())
+    }
+
+    @Test
+    fun milestoneRoundAsksForScoresThenReadsThemBackLeaderFirst() {
+        val combat = successfulStart(colors, DunePlayerColor.BLUE).copy(round = 5, phase = DunePhase.COMBAT)
+        val collecting = (advanceDunePhase(combat, 1L) as DuneActionResult.Success).session
+        assertEquals(
+            listOf("dune_collect_rewards.wav", "dune_checkpoint_due_05.wav"),
+            duneTransitionClips(combat, collecting).map { it.name },
+        )
+        val points = mapOf(DunePlayerColor.BLUE to 6, DunePlayerColor.RED to 8, DunePlayerColor.YELLOW to 6)
+        val recorded = (recordDuneScoreCheckpoint(collecting, points, 2L) as DuneActionResult.Success).session
+        assertEquals(
+            listOf(
+                "dune_standings_05.wav",
+                "dune_name_red.wav", "dune_phrase_points_08.wav",
+                "dune_name_blue.wav", "dune_phrase_points_06.wav",
+                "dune_name_yellow.wav", "dune_phrase_points_06.wav",
+            ),
+            duneTransitionClips(collecting, recorded).map { it.name },
+        )
+        assertTrue(duneTransitionClips(recorded, recorded.copy(phase = DunePhase.MAKERS)).none { it.name.startsWith("dune_standings") })
+    }
+
+    @Test
+    fun ordinaryRoundDoesNotAskForScores() {
+        val combat = successfulStart(colors, DunePlayerColor.BLUE).copy(round = 4, phase = DunePhase.COMBAT)
+        val collecting = (advanceDunePhase(combat, 1L) as DuneActionResult.Success).session
+        assertEquals(listOf("dune_collect_rewards.wav"), duneTransitionClips(combat, collecting).map { it.name })
+    }
+
+    @Test
+    fun onlyTheSelfRunningPhasesCountDown() {
+        val started = successfulStart(colors, DunePlayerColor.BLUE)
+        assertNull(duneAutoAdvance(started))
+        assertNull(duneAutoAdvance(started.copy(phase = DunePhase.COMBAT)))
+
+        val rewards = started.copy(round = 4, phase = DunePhase.COMBAT_COMPLETE, phaseStartedAtMs = 1_000L)
+        val auto = duneAutoAdvance(rewards)!!
+        assertEquals("MAKERS", auto.next)
+        assertEquals(1_000L + Config.DUNE_COMBAT_TO_MAKERS_DELAY_MS, auto.dueAtMs)
+        // A checkpoint round waits for the scores instead.
+        assertNull(duneAutoAdvance(rewards.copy(round = 5)))
+
+        assertEquals("RECALL", duneAutoAdvance(started.copy(phase = DunePhase.MAKERS))!!.next)
+        assertEquals("ROUND 5", duneAutoAdvance(started.copy(round = 4, phase = DunePhase.RECALL))!!.next)
+        assertNull(duneAutoAdvance(started.copy(round = 10, phase = DunePhase.RECALL)))
+    }
+
+    @Test
+    fun exitingFreezesARunningTurnClock() {
+        val started = successfulStart(colors, DunePlayerColor.BLUE)
+        val left = duneSessionForExit(started, 50_000L)
+        assertTrue(left.paused)
+        assertEquals(50_000L, left.pausedAtMs)
+        // Already paused, or a phase that cannot be paused: left as it was.
+        assertEquals(left, duneSessionForExit(left, 90_000L))
+        val makers = started.copy(phase = DunePhase.MAKERS)
+        assertEquals(makers, duneSessionForExit(makers, 50_000L))
+        assertEquals(DuneSession(), duneSessionForExit(DuneSession(), 50_000L))
+    }
+
+    @Test
+    fun everyCheckpointCueHasASpokenLine() {
+        listOf(5, 9, 10).forEach { round ->
+            assertTrue(duneSpeechFor("dune_checkpoint_due_%02d.wav".format(round))!!.endsWith("scores."))
+        }
+        assertEquals("At the halfway point,", duneSpeechFor("dune_standings_05.wav"))
+        assertEquals("Final scores.", duneSpeechFor("dune_standings_final.wav"))
+        assertEquals("has one point.", duneSpeechFor(dunePointsPhrase(1)))
+        assertEquals("has 12 points.", duneSpeechFor(dunePointsPhrase(12)))
+        assertEquals("Round 9.", duneSpeechFor("dune_conflict_09.wav"))
+        assertEquals("Final round.", duneSpeechFor("dune_conflict_10.wav"))
     }
 
     @Test

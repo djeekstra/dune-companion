@@ -19,10 +19,23 @@
   .players{display:grid;gap:7px;margin:10px 0}.playerRow{display:grid;grid-template-columns:1fr auto;gap:6px 8px;align-items:center;border-bottom:1px solid #3b1b0a;padding:8px 0}.rowBtns{grid-column:1/3;display:grid;grid-template-columns:1fr 1fr;gap:6px}.playerRow button{font-size:11px;padding:11px 4px}.done{opacity:.45}.turnOrder{font-size:11px;letter-spacing:1px;color:var(--ash);border:1px solid #3b1b0a;border-radius:8px;padding:10px;margin:12px 0;line-height:1.6}.scoreCard{border:1px solid var(--fire);border-radius:10px;padding:14px;margin:14px 0}.scoreRow{display:grid;grid-template-columns:1fr 90px;gap:10px;align-items:center}.scoreRow input{margin:4px 0}.scoreRow input.missing{border-color:#ff4d2e;background:#2a0f06}.scoreCard select{margin:8px 0}
   #game{display:none}#toast{position:fixed;left:0;right:0;bottom:0;background:var(--fire);color:var(--ink);text-align:center;padding:14px;font-weight:800;letter-spacing:2px;transform:translateY(100%);transition:transform .18s}#toast.show{transform:translateY(0)}
   a.back{display:inline-block;color:var(--ash);text-decoration:none;font-size:11px;letter-spacing:2px;margin-bottom:14px}
+  details{margin:22px 0 8px}summary{font-size:11px;letter-spacing:3px;color:var(--ash);cursor:pointer;padding:10px 0;list-style:none}summary::-webkit-details-marker{display:none}summary::before{content:'▸ '}details[open] summary::before{content:'▾ '}
+  #tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 18px}#tabs button{font-size:12px;padding:12px 4px}#tabs button.on{background:var(--fire);color:var(--ink);border-color:var(--fire)}
+  .tab{display:none}.tab.on{display:block}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tile{border:1px solid #3b1b0a;border-radius:8px;padding:10px}.tile b{display:block;font-size:20px;margin-top:4px}.tile span{font-size:10px;letter-spacing:2px;color:var(--ash)}
+  .scroll{overflow-x:auto;margin:6px 0}table{border-collapse:collapse;width:100%;font-size:12px}th{font-size:9px;letter-spacing:1.5px;color:var(--ash);text-align:right;font-weight:400;padding:6px 4px;white-space:nowrap}th:first-child,td:first-child{text-align:left}td{text-align:right;padding:7px 4px;border-top:1px solid #3b1b0a;white-space:nowrap}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:baseline}
+  .bar{display:grid;grid-template-columns:34px 1fr 64px;gap:8px;align-items:center;font-size:11px;margin:4px 0}.bar i{display:block;height:12px;background:var(--ember);border-radius:3px}.bar i.max{background:var(--fire)}
+  .game{border:1px solid #3b1b0a;border-radius:8px;padding:12px;margin:8px 0;cursor:pointer;font-size:12px;line-height:1.6}.game .meta{font-size:10px}
+  .note{font-size:11px;color:var(--ash);letter-spacing:1px;line-height:1.6}a.btn{display:block;text-align:center;text-decoration:none;font-weight:800;color:var(--fire);background:var(--char);border:1px solid var(--ash);border-radius:10px;padding:16px 8px;letter-spacing:1.5px;font-size:15px}
+  #guide{font-size:13px;line-height:1.65;color:#f0b890}#guide h2{margin-top:26px}#guide b{color:var(--fire)}#guide ul{padding-left:18px;margin:6px 0}#guide li{margin:4px 0}#guide p{margin:6px 0}
+  #autoAdvance{display:none;border:1px solid #3b1b0a;border-radius:10px;padding:12px;margin:-4px 0 14px;text-align:center;font-size:12px;letter-spacing:2px;font-weight:800}#autoAdvance .track{height:8px;border-radius:4px;background:var(--char);margin-top:8px;overflow:hidden}#autoAdvance .fill{height:100%;background:var(--ember)}
   #testbar{display:none;background:#ffb000;color:#1a0d00;font-weight:900;letter-spacing:2px;text-align:center;padding:12px;border-radius:8px;margin-bottom:14px;font-size:12px;line-height:1.5}
 </style></head><body>
-<h1>ROUND STEWARD</h1><p class="sub">DUNE: IMPERIUM · FAN-MADE, NOT AFFILIATED WITH DIRE WOLF</p>
-<section id="setup"><h2>SEATING · CLOCKWISE</h2>
+<h1>GAME COMPANION</h1><p class="sub">DUNE: IMPERIUM · FAN-MADE, NOT AFFILIATED WITH DIRE WOLF</p>
+<nav id="tabs"><button data-tab="play" onclick="showTab('play')">GAME</button><button data-tab="stats" onclick="showTab('stats')">STATS</button><button data-tab="guide" onclick="showTab('guide')">GUIDE</button></nav>
+<div class="tab" id="tab-play">
+<section id="setup"><p class="note">NEW HERE? OPEN THE <b>GUIDE</b> TAB ABOVE FIRST.</p><h2>SEATING · CLOCKWISE</h2>
   <label>PLAYER COUNT</label><select id="count" onchange="seatCount()"><option value="3">3 PLAYERS</option><option value="4">4 PLAYERS</option></select>
   <div class="grid">
     <div><label>SEAT 1</label><select class="seat"><option>BLUE</option><option>GREEN</option><option>RED</option><option>YELLOW</option></select><input class="playerName" maxlength="32" autocomplete="off" placeholder="PLAYER NAME"><input class="playerName2" maxlength="32" autocomplete="off" placeholder="+ SHARING THIS COLOUR"></div>
@@ -34,20 +47,75 @@
   <div id="setupOrder" class="turnOrder"></div>
   <button class="primary" style="margin-top:16px" onclick="startGame('live')">START GAME</button>
 </section>
-<section id="game"><div id="status"></div>
+<section id="game"><div id="status"></div><div id="autoAdvance"><div id="autoText"></div><div class="track"><div class="fill" id="autoFill"></div></div></div>
   <button class="stop wide" style="margin-bottom:10px" onclick="endGame()">END GAME</button>
   <div class="grid"><button id="pause" onclick="pauseGame()">PAUSE TIMER</button><button id="endRound" onclick="endRound()">END ROUND · NEXT ROUND</button></div>
   <div id="turnControls" class="grid"><button class="primary" id="agentDone" onclick="fire('/dune/agent-done','AGENT TURN COMPLETE')">END AGENT TURN</button><button class="primary" id="revealDone" onclick="fire('/dune/reveal-done','REVEAL COMPLETE')">FINISH REVEAL</button></div>
   <button id="undoTurn" style="margin-top:10px" onclick="undoTurn()">UNDO LAST TURN</button>
   <button class="primary" id="phaseNext" style="margin-top:10px" onclick="fire('/dune/phase-next','PHASE COMPLETE')">BEGIN COMBAT</button>
   <div id="turnOrder" class="turnOrder"></div>
-  <h2>PLAYERS · AGENTS REMAINING</h2><div class="players" id="players"></div>
+  <details id="playerTokens"><summary>SWORDMASTER · HIGH COUNCIL</summary><div class="players" id="players"></div></details>
   <div class="scoreCard" id="scoreCard" style="display:none"><h2 id="scoreTitle">RECORD VICTORY POINTS</h2><div id="scoreInputs"></div><select id="scoreWinner" style="display:none"></select><button class="primary" onclick="submitScores()">SAVE CHECKPOINT</button></div>
   <div class="grid"><button id="undo" onclick="fire('/dune/undo','UNDONE')">UNDO ROUND</button><button onclick="fire('/dune/replay','CUE REPLAYED')">REPLAY CUE</button></div>
   <div class="grid" style="margin-top:10px"><button onclick="fire('/audio/test?clip=steward_speaker_test','TESTING SPEAKER')">TEST SPEAKER</button><button onclick="fire('/audio/reset','AUDIO CLEARED')">CLEAR AUDIO QUEUE</button></div>
   <h2>DECLARE WINNER</h2><div class="grid" id="winners"></div></section>
-<h2>GESTURES · SPIKE DEBUG</h2><div id="gestures" class="turnOrder">…</div>
-<button onclick="fire('/debug/reset-counts','COUNTS RESET')">RESET GESTURE COUNTS</button>
+<details><summary>GESTURE DEBUG</summary><div id="gestures" class="turnOrder">…</div>
+<button onclick="fire('/debug/reset-counts','COUNTS RESET')">RESET GESTURE COUNTS</button></details>
+</div>
+<div class="tab" id="tab-stats">
+  <div id="statsCurrent"></div>
+  <div id="statsDetail"></div>
+  <h2>ALL GAMES</h2><div id="statsAllTime" class="note">…</div>
+  <h2>PAST GAMES</h2><div id="statsGames" class="note">…</div>
+  <h2>BACKUP</h2>
+  <p class="note">GAMES ARE KEPT ONLY ON THE DISPLAY PHONE. UNINSTALLING THE APP DELETES THEM. EXPORT SAVES THEM ALL AS ONE FILE.</p>
+  <a class="btn" href="/stats/export" download>EXPORT HISTORY</a>
+</div>
+<div class="tab" id="tab-guide"><div id="guide">
+<p>Dune Companion is a <b>game companion</b> for Dune: Imperium. One phone, the <b>display</b>, lies face up in the middle of the table. It shows whose turn it is, times each turn, and announces handovers and phases out loud. This page is the <b>admin panel</b>, open on any other phone, tablet or laptop, for setup, scoring and corrections.</p>
+<h2>SETUP</h2>
+<ul>
+<li>Open <b>Dune Companion</b> on the display phone and allow notifications (it keeps the companion running with the screen off).</li>
+<li>Connect this device to the <b>same Wi-Fi</b> as the display phone, then scan the QR code on the display. If the page won't load (guest or office Wi-Fi often blocks it), turn on the display phone's <b>hotspot</b>, join it from this device, and scan again.</li>
+<li>Turn the display phone's media volume up. The voice comes from its speaker.</li>
+<li>On the <b>GAME</b> tab, pick 3 or 4 players, set each seat's colour <b>clockwise</b> from any seat, and add names if you like. Two people can share a colour. Choose the first player and check the turn order shown, then press <b>START GAME</b>.</li>
+<li>Lay the display phone face up in the middle of the table.</li>
+</ul>
+<h2>ON THE DISPLAY PHONE</h2>
+<ul>
+<li><b>Spin it a full turn</b> while it lies flat to end an agent turn. Two half-turns the same way also count. Let it rest for a second first. A spin as you set it down doesn't count.</li>
+<li><b>Shake it</b> in the hand to finish your reveal turn. During combat, a shake marks combat resolved.</li>
+<li><b>Triple-tap</b> the screen to end an agent turn, as a fallback.</li>
+<li><b>Draw a letter</b> on the screen to claim a space for whoever has the turn: <b>S</b> Swordmaster, <b>C</b> High Council, <b>M</b> Mentat. Experimental: S and C read well, M less so. If a letter isn't recognised, nothing happens.</li>
+<li><b>Long-press</b> the display for the gesture debug overlay and the exit buttons.</li>
+</ul>
+<h2>A ROUND</h2>
+<ul>
+<li>The companion says the round and who is first player, then names whoever has the turn after each turn ends. Players who have revealed are skipped, and the companion says so.</li>
+<li>Turn timers call out at 5, 7 and 10 minutes, and it says each hour of game time.</li>
+<li>When the last player reveals, <b>combat starts by itself</b>. When combat is resolved, <b>shake the display</b> or press <b>COMPLETE COMBAT</b>. That is the only step anyone has to take between rounds.</li>
+<li><b>Collect your rewards</b>, <b>Makers</b> and <b>Recall</b> then run by themselves, and the next round starts. The display and this panel count down to each one ("MAKERS IN 12") so nobody sits waiting for a button.</li>
+<li><b>Victory points</b> are asked for after conflicts <b>5 and 9</b>, and at the end. The companion says "Update the scores" and the round waits until they're entered here. Once saved, it reads the standings back, leader first. <b>REPLAY CUE</b> repeats the reminder.</li>
+<li>After conflict 10, enter the final scores and pick the winner. To end early, use a <b>WINS</b> button under Declare Winner.</li>
+</ul>
+<h2>FIXING MISTAKES</h2>
+<ul>
+<li><b>UNDO TURN</b> gives the last turn back (for a spin or shake that fired by accident).</li>
+<li><b>UNDO ROUND</b> undoes the last round change. <b>END ROUND</b> skips to the next round.</li>
+<li><b>PAUSE TIMER</b> stops the turn and game clocks for breaks. Paused time isn't counted in stats.</li>
+<li>Swordmaster and High Council toggles are under <b>SWORDMASTER · HIGH COUNCIL</b>. Tap again to take one back.</li>
+</ul>
+<h2>STATS</h2>
+<p>Every game that ends with a winner is saved on the display phone. The <b>STATS</b> tab shows the current game live and every past game: game time, turns and time per player, agent vs reveal turns, time per round, and the victory points at each checkpoint. <b>ALL GAMES</b> totals wins and averages by player name, so type names the same way each time. Use <b>EXPORT HISTORY</b> now and then as a backup.</p>
+<h2>TROUBLESHOOTING</h2>
+<ul>
+<li><b>Panel says NO CONNECTION:</b> check both devices are on the same network, or use the hotspot. The display app must still be running (look for its notification).</li>
+<li><b>No voice:</b> raise the display phone's media volume, then press <b>TEST SPEAKER</b>.</li>
+<li><b>Closed the app by accident:</b> reopen it. The game is saved on every change and carries on where it was.</li>
+<li><b>To close it:</b> long-press the display, then <b>EXIT · KEEP GAME</b> (the clocks pause, and reopening carries on; resume here with <b>RESUME TIMER</b>) or <b>EXIT · END GAME</b> (tap twice; the game is discarded). <b>Stop</b> on its notification keeps the game.</li>
+</ul>
+<p class="note">FAN-MADE. NOT AFFILIATED WITH OR ENDORSED BY DIRE WOLF OR LEGENDARY.</p>
+</div></div>
 <div id="toast"></div>
 <script>
 var latest={},timer,toastEl=document.getElementById('toast');
@@ -95,6 +163,11 @@ function endRound(){if(window.confirm('END THIS ROUND AND START THE NEXT ROUND?'
 // dialog in the way of that is the reason someone reaches for the panel instead. Tapping it
 // wrongly costs one spin to put back.
 function undoTurn(){fire('/dune/undo-turn','TURN HANDED BACK')}
+// The phone sends time remaining, not a due time: this device's clock may not match the phone's.
+function autoTick(){var box=document.getElementById('autoAdvance'),a=latest.active&&latest.autoAdvance;box.style.display=a?'block':'none';if(!a)return;
+ var left=Math.max(0,a.remainingMs-(Date.now()-(latest.receivedAtMs||Date.now())));
+ document.getElementById('autoText').textContent=a.next+' IN '+Math.ceil(left/1000);
+ document.getElementById('autoFill').style.width=(a.durationMs?left/a.durationMs*100:0)+'%'}
 function refresh(){fetch('/dune/state').then(function(r){return r.json()}).then(function(s){s.receivedAtMs=Date.now();latest=s;render(s)}).catch(function(){toast('NO CONNECTION')})}
 function fmt(ms){var t=Math.max(0,Math.floor(ms/1000)),m=Math.floor(t/60),q=t%60;return String(m).padStart(2,'0')+':'+String(q).padStart(2,'0')}
 function tick(){if(!latest.active)return;var gameEl=document.getElementById('gameTimer');if(gameEl){var running=!latest.paused&&!latest.winner,gameMs=(latest.gameElapsedMs||0)+(running?Date.now()-(latest.receivedAtMs||Date.now()):0);gameEl.textContent='GAME TIME · '+fmt(gameMs)}var el=document.getElementById('turnTimer');if(!el)return;var timed=latest.phase==='turns'&&latest.currentPlayer;if(!timed)return;var clock=latest.paused?(latest.pausedAtMs||Date.now()):Date.now(),ms=clock-latest.turnStartedAtMs;el.textContent=fmt(ms);el.classList.toggle('pulse',!latest.paused&&ms>=420000)}
@@ -116,7 +189,7 @@ function render(s){document.getElementById('setup').style.display=s.active?'none
  var labels={turns:'BEGIN COMBAT',combat:'COMPLETE COMBAT',"combat-complete":'MAKERS START AUTOMATICALLY',makers:'RECALL STARTS AUTOMATICALLY',recall:(s.round>=10?'FINAL ROUND':'NEXT ROUND STARTS AUTOMATICALLY')};var next=document.getElementById('phaseNext');next.textContent=labels[s.phase]||s.phaseName;next.disabled=!!s.winner||!!s.paused||(s.phase==='turns'&&!s.turnsComplete)||s.phase==='combat-complete'||s.phase==='makers'||s.phase==='recall';
  document.getElementById('undo').disabled=!s.undoAvailable||!!s.winner;
  // Name whoever gets the turn back, so the tap can be checked before it happens — the person
- // holding the panel is usually not the person the steward skipped.
+ // holding the panel is usually not the person the companion skipped.
  var undoT=document.getElementById('undoTurn');
  undoT.textContent=s.turnUndoPlayer?'UNDO TURN · BACK TO '+playerLabel(s,s.turnUndoPlayer):'NO TURN TO UNDO';
  undoT.disabled=!s.turnUndoPlayer||!!s.winner;
@@ -148,5 +221,48 @@ function renderScoreCard(s){
 function showFinalScores(c){var score=document.getElementById('scoreCard');score.dataset.manual='true';score.dataset.sig='';renderScoreCard(latest);document.getElementById('scoreWinner').value=c;score.scrollIntoView({behavior:'smooth'})}
 function gestures(){fetch('/debug/state').then(function(r){return r.json()}).then(function(g){
  document.getElementById('gestures').innerHTML=(g.armed?'ARMED':'NOT ARMED')+' · '+(g.flat?'FLAT':'NOT FLAT')+' · SPIN '+Math.round(g.spinDegrees)+'°<br>SPINS '+g.spins+' · REFUSED '+g.spinsRejected+' · SHAKES '+g.shakes+' · TAPS '+g.taps+'<br>'+g.sensors.map(esc).join('<br>')}).catch(function(){})}
-refresh();gestures();setInterval(refresh,1000);setInterval(gestures,1000);setInterval(tick,1000);
+// ---- Tabs. The last one opened is remembered in the URL, so a reload stays put.
+var tab='play';
+function showTab(t){tab=t;document.querySelectorAll('.tab').forEach(function(el){el.classList.toggle('on',el.id==='tab-'+t)});document.querySelectorAll('#tabs button').forEach(function(b){b.classList.toggle('on',b.dataset.tab===t)});try{history.replaceState(null,'','#'+t)}catch(e){}if(t==='stats')loadStats()}
+// ---- Stats
+var SEAT_COLOURS={blue:'#4a8fff',green:'#3fbf5f',red:'#ff4d4d',yellow:'#ffd23a'},openGame='';
+function dur(ms){var t=Math.max(0,Math.round((ms||0)/1000)),h=Math.floor(t/3600),m=Math.floor(t%3600/60),q=t%60;return h?h+'h '+String(m).padStart(2,'0')+'m':m+':'+String(q).padStart(2,'0')}
+function pct(x){return Math.round((x||0)*100)+'%'}
+function day(ms){return ms?new Date(ms).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):''}
+function dot(seat){return '<i class="dot" style="background:'+(SEAT_COLOURS[seat]||'#888')+'"></i>'}
+function getJson(path){return fetch(path).then(function(r){return r.json().then(function(j){if(!r.ok)throw Error(j.error||'FAILED');return j})})}
+function loadStats(){loadCurrentStats();getJson('/stats/all-time').then(renderAllTime).catch(function(){});getJson('/stats/games').then(renderGames).catch(function(){})}
+function loadCurrentStats(){getJson('/stats/current').then(function(st){document.getElementById('statsCurrent').innerHTML=st.active?'<h2>THIS GAME · LIVE</h2>'+gameStatsHtml(st):''}).catch(function(){})}
+function gameStatsHtml(st){
+ var h='<div class="tiles"><div class="tile"><span>GAME TIME</span><b>'+dur(st.gameMs)+'</b></div><div class="tile"><span>ROUNDS</span><b>'+st.rounds+'</b></div><div class="tile"><span>TURNS</span><b>'+st.turns+'</b></div><div class="tile"><span>AVG TURN</span><b>'+dur(st.averageTurnMs)+'</b></div></div>';
+ if(st.winnerName)h+='<p class="note" style="margin-top:10px">WINNER · '+dot(st.winner)+'<b>'+esc(st.winnerName)+'</b></p>';
+ h+='<h2>TURN TIME BY PLAYER</h2><div class="scroll"><table><tr><th>PLAYER</th><th>TURNS</th><th>TIME</th><th>SHARE</th><th>AVG</th><th>LONGEST</th><th>VP</th></tr>'+st.seats.map(function(s){return '<tr><td>'+dot(s.seat)+esc(s.name)+(s.winner?' ★':'')+'</td><td>'+s.turns+'</td><td>'+dur(s.totalMs)+'</td><td>'+pct(s.share)+'</td><td>'+dur(s.averageMs)+'</td><td>'+dur(s.longestMs)+'</td><td>'+(s.victoryPoints==null?'–':s.victoryPoints)+'</td></tr>'}).join('')+'</table></div>';
+ h+='<h2>AGENT · REVEAL</h2><div class="scroll"><table><tr><th>TURN</th><th>COUNT</th><th>AVG</th><th>TIME</th><th>SHARE</th></tr>'+st.kinds.map(function(k){return '<tr><td>'+k.kind.toUpperCase()+'</td><td>'+k.turns+'</td><td>'+dur(k.averageMs)+'</td><td>'+dur(k.totalMs)+'</td><td>'+pct(k.share)+'</td></tr>'}).join('')+'</table></div>';
+ if(st.roundTimes.length){var max=Math.max.apply(null,st.roundTimes.map(function(r){return r.turnTimeMs}))||1;
+  h+='<h2>TURN TIME BY ROUND</h2>'+st.roundTimes.map(function(r){return '<div class="bar"><span>R'+r.round+'</span><i class="'+(r.round===st.slowestRound?'max':'')+'" style="width:'+Math.max(2,Math.round(r.turnTimeMs/max*100))+'%"></i><span style="text-align:right">'+dur(r.turnTimeMs)+'</span></div>'}).join('')}
+ if(st.checkpoints.length)h+='<h2>VICTORY POINTS</h2>'+vpChart(st)+'<div class="scroll"><table><tr><th>PLAYER</th>'+st.checkpoints.map(function(c){return '<th>'+(c.final?'FINAL':'C'+c.conflict)+'</th>'}).join('')+'</tr>'+st.seats.map(function(s){return '<tr><td>'+dot(s.seat)+esc(s.name)+'</td>'+st.checkpoints.map(function(c){var v=c.victoryPoints[s.seat];return '<td>'+(v==null?'–':v)+'</td>'}).join('')+'</tr>'}).join('')+'</table></div>';
+ return h}
+// Points only exist at the checkpoints (conflicts 5, 9, 10), so the line starts from zero at
+// the first conflict and joins what was recorded. Drawn inline: the panel may be on a hotspot
+// with no internet, so there is no chart library to fetch.
+function vpChart(st){
+ var W=320,H=150,L=24,R=10,T=10,B=22,pts=[{conflict:0,victoryPoints:{}}].concat(st.checkpoints),max=4;
+ st.checkpoints.forEach(function(c){for(var k in c.victoryPoints)max=Math.max(max,c.victoryPoints[k])});max=Math.ceil((max+1)/2)*2;
+ function x(c){return L+(W-L-R)*c/10}function y(v){return T+(H-T-B)*(1-v/max)}
+ var g='';for(var v=0;v<=max;v+=2)g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="#3b1b0a"/><text x="'+(L-6)+'" y="'+(y(v)+3)+'" fill="#8a3a0a" font-size="9" text-anchor="end">'+v+'</text>';
+ pts.forEach(function(p){if(p.conflict)g+='<text x="'+x(p.conflict)+'" y="'+(H-6)+'" fill="#8a3a0a" font-size="9" text-anchor="middle">'+p.conflict+'</text>'});
+ // Each seat is nudged a pixel or two off the others so tied scores don't hide a line.
+ st.seats.forEach(function(s,i){var c=SEAT_COLOURS[s.seat]||'#888',d=(i-(st.seats.length-1)/2)*2.2,line=pts.map(function(p){return x(p.conflict)+','+(y(p.victoryPoints[s.seat]||0)+d)}).join(' ');
+  g+='<polyline points="'+line+'" fill="none" stroke="'+c+'" stroke-width="2"/>'+pts.slice(1).map(function(p){return '<circle cx="'+x(p.conflict)+'" cy="'+(y(p.victoryPoints[s.seat]||0)+d)+'" r="3" fill="'+c+'"/>'}).join('')});
+ return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Victory points by conflict">'+g+'</svg>'}
+function renderAllTime(a){var el=document.getElementById('statsAllTime');if(!a.games){el.innerHTML='NO FINISHED GAMES YET.';return}
+ el.innerHTML='<div class="tiles"><div class="tile"><span>GAMES</span><b>'+a.games+'</b></div><div class="tile"><span>AVG GAME</span><b>'+dur(a.averageGameMs)+'</b></div></div>'+(a.players.length?'<div class="scroll"><table><tr><th>PLAYER</th><th>GAMES</th><th>WINS</th><th>WIN %</th><th>AVG TURN</th><th>AVG VP</th></tr>'+a.players.map(function(p){return '<tr><td>'+esc(p.name)+'</td><td>'+p.games+'</td><td>'+p.wins+'</td><td>'+pct(p.winRate)+'</td><td>'+dur(p.averageTurnMs)+'</td><td>'+(p.averagePoints==null?'–':p.averagePoints.toFixed(1))+'</td></tr>'}).join('')+'</table></div>':'<p class="note">NAME THE SEATS TO SEE PER-PLAYER TOTALS.</p>')}
+function renderGames(r){var el=document.getElementById('statsGames');if(!r.games.length){el.innerHTML='GAMES APPEAR HERE ONCE A WINNER IS DECLARED.';return}
+ el.innerHTML=r.games.map(function(g){return '<div class="game" onclick="openStats(\''+esc(g.sessionId)+'\')"><div class="meta">'+day(g.startedAtMs)+' · '+dur(g.gameMs)+' · '+g.rounds+' ROUNDS</div>'+dot(g.winner)+'<b>'+esc(g.winnerName)+'</b> WON · '+g.players.map(esc).join(', ')+'</div>'}).join('')}
+function openStats(id){openGame=id;getJson('/stats/game?id='+encodeURIComponent(id)).then(function(st){var el=document.getElementById('statsDetail');
+ el.innerHTML='<h2>'+day(st.startedAtMs)+' · GAME</h2>'+gameStatsHtml(st)+'<div class="grid" style="margin-top:14px"><button onclick="closeStats()">CLOSE</button><button class="stop" onclick="deleteGame()">DELETE GAME</button></div>';el.scrollIntoView({behavior:'smooth'})}).catch(function(e){toast(e.message)})}
+function closeStats(){openGame='';document.getElementById('statsDetail').innerHTML=''}
+function deleteGame(){if(!openGame||!window.confirm('DELETE THIS GAME FROM THE HISTORY? THIS CANNOT BE UNDONE.'))return;getJson('/stats/delete?id='+encodeURIComponent(openGame)).then(function(){toast('GAME DELETED');closeStats();loadStats()}).catch(function(e){toast(e.message)})}
+showTab(({stats:1,guide:1})[location.hash.slice(1)]?location.hash.slice(1):'play');
+refresh();gestures();setInterval(refresh,1000);setInterval(function(){if(tab==='play')gestures()},1000);setInterval(tick,1000);setInterval(autoTick,100);setInterval(function(){if(tab==='stats')loadCurrentStats()},5000);
 </script></body></html>

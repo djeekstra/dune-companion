@@ -15,7 +15,13 @@ fun duneSpeechFor(clipName: String): String? {
     FIXED_LINES[base]?.let { return it }
 
     Regex("dune_conflict_(\\d+)").matchEntire(base)?.let {
-        return "Round ${it.groupValues[1].toInt()}."
+        val round = it.groupValues[1].toInt()
+        // Said flat, like the nine before it: the round is news, the finality needs no shout.
+        return if (round == 10) "Final round." else "Round $round."
+    }
+    Regex("dune_phrase_points_(\\d+)").matchEntire(base)?.let {
+        val points = it.groupValues[1].toInt()
+        return if (points == 1) "has one point." else "has $points points."
     }
     Regex("dune_game_hour_(\\d)").matchEntire(base)?.let {
         val hours = it.groupValues[1].toInt()
@@ -52,7 +58,13 @@ private val FIXED_LINES = mapOf(
     "dune_timer_paused" to "Timer paused.",
     "dune_game_resumed" to "Game resumed.",
     "dune_game_another_hour" to "Another hour played.",
-    "steward_speaker_test" to "Speaker check. The steward is listening.",
+    "dune_checkpoint_due_05" to "Halfway point. Update the scores.",
+    "dune_checkpoint_due_09" to "One conflict to go. Update the scores.",
+    "dune_checkpoint_due_10" to "Final conflict resolved. Enter the final scores.",
+    "dune_standings_05" to "At the halfway point,",
+    "dune_standings_09" to "With one conflict to go,",
+    "dune_standings_final" to "Final scores.",
+    "steward_speaker_test" to "Speaker check. The companion is listening.",
 )
 
 /** The three short sound-effect markers. Played as tones when no clip is installed. */

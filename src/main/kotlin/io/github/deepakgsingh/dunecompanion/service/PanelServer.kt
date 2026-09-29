@@ -6,14 +6,21 @@ import io.github.deepakgsingh.dunecompanion.DUNE_CUE_BOOST
 import io.github.deepakgsingh.dunecompanion.DUNE_REVEAL_END_CUE
 import io.github.deepakgsingh.dunecompanion.DUNE_TURN_END_CUE
 import io.github.deepakgsingh.dunecompanion.DuneActionResult
+import io.github.deepakgsingh.dunecompanion.DuneHistoryStore
 import io.github.deepakgsingh.dunecompanion.DunePhase
 import io.github.deepakgsingh.dunecompanion.DunePlayerColor
 import io.github.deepakgsingh.dunecompanion.DuneSession
 import io.github.deepakgsingh.dunecompanion.Steward
 import io.github.deepakgsingh.dunecompanion.advanceDunePhase
 import io.github.deepakgsingh.dunecompanion.advanceDuneSession
+import io.github.deepakgsingh.dunecompanion.duneCheckpointDueClip
 import io.github.deepakgsingh.dunecompanion.duneConflictClips
+import io.github.deepakgsingh.dunecompanion.duneAllTimeStats
+import io.github.deepakgsingh.dunecompanion.duneAutoAdvance
 import io.github.deepakgsingh.dunecompanion.duneGameElapsedMs
+import io.github.deepakgsingh.dunecompanion.duneGameStats
+import io.github.deepakgsingh.dunecompanion.duneGameSummaries
+import io.github.deepakgsingh.dunecompanion.duneHistoryJson
 import io.github.deepakgsingh.dunecompanion.dunePhaseCueFilename
 import io.github.deepakgsingh.dunecompanion.duneTurnRestoredClips
 import io.github.deepakgsingh.dunecompanion.duneWinnerCueFilename
@@ -40,6 +47,7 @@ import java.io.File
  */
 class PanelServer(
     private val clipsDir: File,
+    private val historyStore: DuneHistoryStore,
     private val panelHtml: String,
 ) : NanoHTTPD(Config.PANEL_PORT) {
 
@@ -71,7 +79,13 @@ class PanelServer(
                 playCue = false,
                 cues = { previous -> previous.turnUndo?.let { duneTurnRestoredClips(previous, it.player) }.orEmpty() },
             ) { undoDuneTurn(it) }
-            "/dune/end-game" -> { Steward.postDune(DuneSession()); ok() }
+            "/dune/end-game" -> withDuneLock {
+                // The service archives a won game as it saves, but a reset landing between two
+                // saves would skip it; archiving here too costs nothing, it is once per game.
+                Steward.dune.value.takeIf { it.winner != null }?.let { historyStore.appendIfNew(duneHistoryJson(it)) }
+                Steward.postDune(DuneSession())
+                ok()
+            }
             "/dune/end" -> {
                 val winner = DunePlayerColor.fromWireName(session.parms["winner"])
                     ?: return error("unknown winner color")
@@ -87,6 +101,18 @@ class PanelServer(
                 Steward.emitAudioClips(listOf(ClipSpec(clip, boostMillibels = 600)))
                 ok()
             }
+            "/stats/current" -> {
+                val dune = Steward.dune.value
+                if (!dune.active) json(JSONObject().put("active", false))
+                else json(duneGameStats(duneHistoryJson(dune, now)).put("active", true))
+            }
+            "/stats/games" -> json(JSONObject().put("games", duneGameSummaries(historyStore.records())))
+            "/stats/game" -> historyStore.find(session.parms["id"].orEmpty())
+                ?.let { json(duneGameStats(it)) }
+                ?: newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json", JSONObject().put("error", "no such game").toString())
+            "/stats/all-time" -> json(duneAllTimeStats(historyStore.records()))
+            "/stats/delete" -> if (historyStore.delete(session.parms["id"].orEmpty())) ok() else error("no such game")
+            "/stats/export" -> exportHistory(now)
             "/debug/state" -> json(gestureJson())
             "/debug/reset-counts" -> {
                 Steward.updateGestures { it.copy(spins = 0, spinsRejected = 0, shakes = 0, taps = 0, glyphs = 0) }
@@ -177,7 +203,10 @@ class PanelServer(
         val clips = when {
             dune.winner != null -> listOf(ClipSpec(duneWinnerCueFilename(dune.winner), DUNE_CUE_BOOST))
             dune.phase == DunePhase.TURNS -> duneConflictClips(dune)
-            else -> dunePhaseCueFilename(dune.phase)?.let { listOf(ClipSpec(it, DUNE_CUE_BOOST)) }.orEmpty()
+            else -> listOfNotNull(
+                dunePhaseCueFilename(dune.phase)?.let { ClipSpec(it, DUNE_CUE_BOOST) },
+                duneCheckpointDueClip(dune),
+            )
         }
         if (clips.isEmpty()) return error("no cue available")
         Steward.emitAudioClips(clips)
@@ -241,6 +270,26 @@ class PanelServer(
         .put("turnUndoPlayer", dune.turnUndo?.player?.wireName.orEmpty())
         .put("roundStartedAtMs", dune.roundStartedAtMs)
         .put("gameElapsedMs", duneGameElapsedMs(dune, System.currentTimeMillis()))
+        // Remaining rather than a due time: the panel's clock is another device's and may be off.
+        .put("autoAdvance", duneAutoAdvance(dune)?.let { auto ->
+            JSONObject()
+                .put("next", auto.next)
+                .put("durationMs", auto.durationMs)
+                .put("remainingMs", (auto.dueAtMs - System.currentTimeMillis()).coerceAtLeast(0L))
+        } ?: JSONObject.NULL)
+
+    // The whole history as a file download: the phone keeps the only copy, and uninstalling
+    // the app deletes it.
+    private fun exportHistory(nowMs: Long): Response {
+        val body = JSONObject()
+            .put("exported_at_ms", nowMs)
+            .put("games", JSONArray(historyStore.records()))
+            .toString(2)
+        val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date(nowMs))
+        return newFixedLengthResponse(Response.Status.OK, "application/json", body).apply {
+            addHeader("Content-Disposition", "attachment; filename=\"dune-companion-history-$day.json\"")
+        }
+    }
 
     private fun json(body: JSONObject): Response =
         newFixedLengthResponse(Response.Status.OK, "application/json", body.toString())

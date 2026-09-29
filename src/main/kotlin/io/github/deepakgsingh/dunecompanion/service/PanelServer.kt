@@ -89,7 +89,7 @@ class PanelServer(
             }
             "/debug/state" -> json(gestureJson())
             "/debug/reset-counts" -> {
-                Steward.updateGestures { it.copy(spins = 0, spinsRejected = 0, shakes = 0, taps = 0) }
+                Steward.updateGestures { it.copy(spins = 0, spinsRejected = 0, shakes = 0, taps = 0, glyphs = 0) }
                 ok()
             }
             else -> newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "not found")
@@ -195,6 +195,8 @@ class PanelServer(
             .put("spinsRejected", g.spinsRejected)
             .put("shakes", g.shakes)
             .put("taps", g.taps)
+            .put("glyphs", g.glyphs)
+            .put("lastGlyph", g.lastGlyph)
             .put("gravity", JSONArray(listOf(g.gravity.first, g.gravity.second, g.gravity.third).map { it.toDouble() }))
             .put("sensors", JSONArray(g.sensors))
             .put("clipsInstalled", clipsDir.list()?.size ?: 0)

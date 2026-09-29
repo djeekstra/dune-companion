@@ -326,6 +326,40 @@ class DuneStateTest {
     }
 
     @Test
+    fun aDrawnLetterClaimsTheSpaceForWhoeverHasTheTurn() {
+        val session = successfulStart(colors, DunePlayerColor.RED)
+        val sword = (claimDuneSpace(session, Glyph.SWORDMASTER) as DuneActionResult.Success).session
+        assertEquals(setOf(DunePlayerColor.RED), sword.thirdAgentPlayers)
+        assertEquals(3, sword.agentTurnsRemaining[DunePlayerColor.RED])
+
+        val council = (claimDuneSpace(session, Glyph.HIGH_COUNCIL) as DuneActionResult.Success).session
+        assertEquals(setOf(DunePlayerColor.RED), council.highCouncilPlayers)
+
+        val mentat = (claimDuneSpace(session, Glyph.MENTAT) as DuneActionResult.Success).session
+        assertEquals(DunePlayerColor.RED, mentat.mentatHolder)
+    }
+
+    @Test
+    fun drawingALetterAgainNeverTakesTheSpaceBack() {
+        var session = successfulStart(colors, DunePlayerColor.RED)
+        Glyph.entries.forEach { glyph ->
+            session = (claimDuneSpace(session, glyph) as DuneActionResult.Success).session
+            assertTrue("$glyph a second time", claimDuneSpace(session, glyph) is DuneActionResult.Error)
+        }
+        assertEquals(setOf(DunePlayerColor.RED), session.thirdAgentPlayers)
+        assertEquals(setOf(DunePlayerColor.RED), session.highCouncilPlayers)
+        assertEquals(DunePlayerColor.RED, session.mentatHolder)
+    }
+
+    @Test
+    fun aDrawnLetterIsRefusedOutsidePlayerTurns() {
+        val session = successfulStart(colors, DunePlayerColor.RED)
+        assertTrue(claimDuneSpace(session.copy(phase = DunePhase.COMBAT), Glyph.SWORDMASTER) is DuneActionResult.Error)
+        assertTrue(claimDuneSpace(session.copy(paused = true), Glyph.SWORDMASTER) is DuneActionResult.Error)
+        assertTrue(claimDuneSpace(DuneSession(), Glyph.SWORDMASTER) is DuneActionResult.Error)
+    }
+
+    @Test
     fun mentatGrantsAnAgentForThisRoundOnly() {
         var session = successfulStart(colors, DunePlayerColor.BLUE)
         session = (toggleDuneMentat(session, DunePlayerColor.YELLOW) as DuneActionResult.Success).session

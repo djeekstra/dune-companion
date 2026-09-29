@@ -7,17 +7,20 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.util.Log
 import io.github.deepakgsingh.dunecompanion.ClipSpec
+import io.github.deepakgsingh.dunecompanion.DUNE_CUE_BOOST
 import io.github.deepakgsingh.dunecompanion.DUNE_REVEAL_END_CUE
 import io.github.deepakgsingh.dunecompanion.DUNE_TURN_END_CUE
 import io.github.deepakgsingh.dunecompanion.DUNE_TURN_REJECTED_CUE
 import io.github.deepakgsingh.dunecompanion.DuneActionResult
 import io.github.deepakgsingh.dunecompanion.DunePhase
 import io.github.deepakgsingh.dunecompanion.DuneSession
+import io.github.deepakgsingh.dunecompanion.Glyph
 import io.github.deepakgsingh.dunecompanion.GravityFilter
 import io.github.deepakgsingh.dunecompanion.ShakeTracker
 import io.github.deepakgsingh.dunecompanion.SpinTracker
 import io.github.deepakgsingh.dunecompanion.Steward
 import io.github.deepakgsingh.dunecompanion.advanceDunePhase
+import io.github.deepakgsingh.dunecompanion.claimDuneSpace
 import io.github.deepakgsingh.dunecompanion.endDuneAgentTurn
 import io.github.deepakgsingh.dunecompanion.finishDuneRevealTurn
 import io.github.deepakgsingh.dunecompanion.isSpinFlat
@@ -87,6 +90,9 @@ suspend fun runGestureWatcher(context: Context) = coroutineScope {
         }
     }
 
+    // Letters need no sensors, only the display, so they are handled whether or not armed.
+    launch { Steward.glyphClaims.collect(::claimWithGlyph) }
+
     var registered = false
     try {
         Steward.dune
@@ -110,6 +116,36 @@ suspend fun runGestureWatcher(context: Context) = coroutineScope {
             }
     } finally {
         if (registered) sensors.unregisterListener(listener)
+    }
+}
+
+private fun Glyph.cuePrefix(): String = when (this) {
+    Glyph.SWORDMASTER -> "dune_third_agent_"
+    Glyph.MENTAT -> "dune_mentat_"
+    Glyph.HIGH_COUNCIL -> "dune_high_council_"
+}
+
+// The same cue as the panel's button, so a table hears the same thing whichever was used.
+private fun claimWithGlyph(glyph: Glyph) {
+    val outcome = withDuneLock {
+        val previous = Steward.dune.value
+        val result = claimDuneSpace(previous, glyph)
+        if (result is DuneActionResult.Success) {
+            val player = previous.currentPlayer
+            val cue = player?.let { ClipSpec("${glyph.cuePrefix()}${it.wireName}.wav", DUNE_CUE_BOOST) }
+            applyDuneResult(result, playCue = false, previous = previous, cues = listOfNotNull(cue))
+        }
+        result
+    }
+    when (outcome) {
+        is DuneActionResult.Success -> {
+            Log.i(TAG, "glyph ${glyph.letter}: claimed")
+            Steward.updateGestures { it.copy(glyphs = it.glyphs + 1) }
+        }
+        is DuneActionResult.Error -> {
+            Log.i(TAG, "glyph ${glyph.letter} rejected: ${outcome.message}")
+            Steward.emitAudioClips(listOf(ClipSpec(DUNE_TURN_REJECTED_CUE, boostMillibels = 600)))
+        }
     }
 }
 

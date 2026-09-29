@@ -383,6 +383,32 @@ fun toggleDuneHighCouncil(session: DuneSession, player: DunePlayerColor): DuneAc
     return DuneActionResult.Success(session.copy(highCouncilPlayers = updated))
 }
 
+/**
+ * A letter drawn on the display: the player whose turn it is has just sent an agent to that
+ * space.
+ *
+ * Only ever grants. The panel's buttons toggle, which is right for correcting a mis-tap, but a
+ * letter drawn twice — or one drawn and then misread as the same one — must not quietly take
+ * the space back. Taking it back stays a panel job.
+ */
+fun claimDuneSpace(session: DuneSession, glyph: Glyph): DuneActionResult {
+    if (!session.active || session.showingWinner) return DuneActionResult.Error("no active game")
+    if (session.paused) return DuneActionResult.Error("game is paused")
+    val player = session.currentPlayer
+    if (session.phase != DunePhase.TURNS || player == null) return DuneActionResult.Error("no one has the turn")
+    return when (glyph) {
+        Glyph.SWORDMASTER ->
+            if (player in session.thirdAgentPlayers) DuneActionResult.Error("already has the swordmaster")
+            else toggleDuneThirdAgent(session, player)
+        Glyph.MENTAT ->
+            if (session.mentatHolder == player) DuneActionResult.Error("already has the mentat")
+            else toggleDuneMentat(session, player)
+        Glyph.HIGH_COUNCIL ->
+            if (player in session.highCouncilPlayers) DuneActionResult.Error("already on the high council")
+            else toggleDuneHighCouncil(session, player)
+    }
+}
+
 fun recordDuneScoreCheckpoint(
     session: DuneSession,
     victoryPoints: Map<DunePlayerColor, Int>,

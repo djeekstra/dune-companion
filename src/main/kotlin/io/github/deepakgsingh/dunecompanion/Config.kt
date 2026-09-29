@@ -74,6 +74,24 @@ object Config {
     // Most time allowed between taps of the on-screen triple tap.
     const val TRIPLE_TAP_GAP_MS = 400L
 
+    // Letters drawn on the display (S, M, H) to claim a board space. Starting guesses from
+    // synthetic strokes in GlyphsTest, to be tuned against DuneGlyph logs at the table.
+    // A lift this long ends the letter; anything sooner is its next stroke, as in an H.
+    const val GLYPH_STROKE_GAP_MS = 500L
+    // Smaller than this and it is a brush of a finger, not a letter.
+    const val GLYPH_MIN_SIZE_DP = 60f
+    // Points each gesture is resampled to, and the rotations it is tried at.
+    const val GLYPH_POINTS = 32
+    const val GLYPH_ROTATION_STEP_DEGREES = 15f
+    // $P distance past which even the nearest letter is not accepted.
+    // GlyphsTest's synthetic letters match their own at 0.4-2.5 and the next letter at 2.7 up.
+    // Real ones on a Pixel 4a (2026-09-29) came in at 1.3-2.9, so 2.8 turned good letters away;
+    // the decoys, not this, are what catch stray strokes.
+    const val GLYPH_MAX_DISTANCE = 3.2f
+    // How much nearer than any other letter or decoy the winner must be. The narrowest real gap
+    // in GlyphsTest is ~0.6.
+    const val GLYPH_MIN_MARGIN = 0.3f
+
     // Audio playback watchdog: a clip gets its measured duration plus this margin.
     const val CLIP_TIMEOUT_MARGIN_MS = 5_000L
     const val CLIP_TIMEOUT_UNKNOWN_MS = 300_000L

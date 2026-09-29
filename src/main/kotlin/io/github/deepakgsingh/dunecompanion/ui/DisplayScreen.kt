@@ -69,6 +69,7 @@ fun DisplayScreen() {
         if (session.active) {
             DuneScene(session)
             DuneActionEffects(effect, Modifier.fillMaxSize())
+            GlyphPad()
             urls.firstOrNull()?.let {
                 Text(
                     it,
@@ -115,7 +116,8 @@ private fun IdleCard(urls: List<String>, onExit: () -> Unit) {
             }
         }
         Spacer(Modifier.height(36.dp))
-        Text("SPIN FLAT = END AGENT TURN · SHAKE = REVEAL\nTRIPLE TAP = END AGENT TURN · HOLD = DEBUG / EXIT",
+        Text("SPIN FLAT = END AGENT TURN · SHAKE = REVEAL\nTRIPLE TAP = END AGENT TURN · HOLD = DEBUG / EXIT\n" +
+            "DRAW S = SWORDMASTER · C = HIGH COUNCIL · M = MENTAT",
             color = Palette.Ash, fontSize = 11.sp, textAlign = TextAlign.Center,
             fontFamily = FontFamily.Monospace)
         Spacer(Modifier.height(28.dp))
@@ -133,7 +135,8 @@ private fun DebugOverlay(g: GestureDebug, onExit: () -> Unit) {
             add("gravity %.1f %.1f %.1f  %s".format(g.gravity.first, g.gravity.second, g.gravity.third,
                 if (g.flat) "FLAT" else "not flat"))
             add("spin %4.0f°   jolts %d".format(g.spinDegrees, g.shakeJolts))
-            add("spins ${g.spins}  refused ${g.spinsRejected}  shakes ${g.shakes}  taps ${g.taps}")
+            add("spins ${g.spins}  refused ${g.spinsRejected}  shakes ${g.shakes}  taps ${g.taps}  letters ${g.glyphs}")
+            if (g.lastGlyph.isNotEmpty()) add("last letter: ${g.lastGlyph}")
             add("")
             addAll(g.sensors.ifEmpty { listOf("no sensors reported") })
         }

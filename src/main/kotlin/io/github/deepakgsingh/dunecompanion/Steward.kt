@@ -25,6 +25,9 @@ data class GestureDebug(
     val spinsRejected: Int = 0,
     val shakes: Int = 0,
     val taps: Int = 0,
+    // Letters drawn on the display: how many claimed a space, and what the last attempt read as.
+    val glyphs: Int = 0,
+    val lastGlyph: String = "",
 )
 
 /**
@@ -74,4 +77,9 @@ object Steward {
     private val _tapTurnEnd = MutableSharedFlow<Unit>(extraBufferCapacity = 4)
     val tapTurnEnd: SharedFlow<Unit> = _tapTurnEnd.asSharedFlow()
     fun requestTapTurnEnd() { _tapTurnEnd.tryEmit(Unit) }
+
+    // A letter recognised on the display, to claim that space for whoever has the turn.
+    private val _glyphClaims = MutableSharedFlow<Glyph>(extraBufferCapacity = 4)
+    val glyphClaims: SharedFlow<Glyph> = _glyphClaims.asSharedFlow()
+    fun requestGlyphClaim(glyph: Glyph) { _glyphClaims.tryEmit(glyph) }
 }

@@ -57,6 +57,10 @@ object Steward {
     val duneEffects: SharedFlow<DuneActionEffectEvent> = _duneEffects.asSharedFlow()
     fun emitDuneEffect(event: DuneActionEffectEvent) { _duneEffects.tryEmit(event) }
 
+    private val _dubblegSettings = MutableStateFlow(false)
+    val dubblegSettings: StateFlow<Boolean> = _dubblegSettings.asStateFlow()
+    fun showDubblegSettings(show: Boolean = true) { _dubblegSettings.value = show }
+
     // Where the admin panel can be reached, for the display to show. Empty until the server
     // is up and the phone has a LAN address.
     private val _panelUrls = MutableStateFlow<List<String>>(emptyList())
@@ -74,6 +78,10 @@ object Steward {
     fun requestQuit() { _quit.tryEmit(Unit) }
 
     // An on-screen triple tap, the fallback for a spin that will not register.
+    private val _tapReveal = MutableSharedFlow<Unit>(extraBufferCapacity = 4)
+    val tapReveal: SharedFlow<Unit> = _tapReveal.asSharedFlow()
+    fun requestTapReveal() { _tapReveal.tryEmit(Unit) }
+
     private val _tapTurnEnd = MutableSharedFlow<Unit>(extraBufferCapacity = 4)
     val tapTurnEnd: SharedFlow<Unit> = _tapTurnEnd.asSharedFlow()
     fun requestTapTurnEnd() { _tapTurnEnd.tryEmit(Unit) }

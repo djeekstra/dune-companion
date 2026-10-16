@@ -6,6 +6,8 @@ import io.github.deepakgsingh.dunecompanion.DUNE_CUE_BOOST
 import io.github.deepakgsingh.dunecompanion.DUNE_REVEAL_END_CUE
 import io.github.deepakgsingh.dunecompanion.DUNE_TURN_END_CUE
 import io.github.deepakgsingh.dunecompanion.DuneActionResult
+import io.github.deepakgsingh.dunecompanion.DubblegConnection
+import io.github.deepakgsingh.dunecompanion.DubblegShareStore
 import io.github.deepakgsingh.dunecompanion.DuneHistoryStore
 import io.github.deepakgsingh.dunecompanion.DunePhase
 import io.github.deepakgsingh.dunecompanion.DunePlayerColor
@@ -49,9 +51,30 @@ class PanelServer(
     private val clipsDir: File,
     private val historyStore: DuneHistoryStore,
     private val panelHtml: String,
+    private val dubblegConnection: DubblegConnection,
+    private val shareStore: DubblegShareStore,
 ) : NanoHTTPD(Config.PANEL_PORT) {
 
     override fun serve(session: IHTTPSession): Response {
+        if (session.uri == "/stats/connect") {
+            if (session.method != Method.POST || session.headers["x-dune-panel"] != "1") {
+                return newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Panel POST required")
+            }
+            Steward.showDubblegSettings()
+            return ok()
+        }
+        if (session.uri == "/stats/share") {
+            // A same-origin custom header prevents a third-party page from queuing uploads.
+            if (session.method != Method.POST || session.headers["x-dune-panel"] != "1") {
+                return newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Panel POST required")
+            }
+            return try {
+                val id = session.parms["id"].orEmpty()
+                val credential = dubblegConnection.credential() ?: return error("Connect DubbleG on the display phone first")
+                shareStore.queueSavedGame(historyStore, id, credential.deviceId)
+                json(shareStore.status(id))
+            } catch (failure: Exception) { error(failure.message ?: "Could not queue sharing request") }
+        }
         if (session.method != Method.GET) {
             return newFixedLengthResponse(Response.Status.METHOD_NOT_ALLOWED, MIME_PLAINTEXT, "GET only")
         }
@@ -101,6 +124,11 @@ class PanelServer(
                 Steward.emitAudioClips(listOf(ClipSpec(clip, boostMillibels = 600)))
                 ok()
             }
+            "/stats/connection" -> {
+                val credential = dubblegConnection.credential()
+                json(JSONObject().put("connected", credential != null).put("name", credential?.name.orEmpty()))
+            }
+            "/stats/share-status" -> json(shareStore.status(session.parms["id"].orEmpty()))
             "/stats/current" -> {
                 val dune = Steward.dune.value
                 if (!dune.active) json(JSONObject().put("active", false))
@@ -111,7 +139,10 @@ class PanelServer(
                 ?.let { json(duneGameStats(it)) }
                 ?: newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json", JSONObject().put("error", "no such game").toString())
             "/stats/all-time" -> json(duneAllTimeStats(historyStore.records()))
-            "/stats/delete" -> if (historyStore.delete(session.parms["id"].orEmpty())) ok() else error("no such game")
+            "/stats/delete" -> {
+                val id = session.parms["id"].orEmpty()
+                if (shareStore.deleteLocalGame(historyStore, id)) ok() else error("no such game")
+            }
             "/stats/export" -> exportHistory(now)
             "/debug/state" -> json(gestureJson())
             "/debug/reset-counts" -> {
@@ -136,8 +167,14 @@ class PanelServer(
                 .takeIf { it.isNotEmpty() }
                 ?.let { color to it }
         }.toMap()
+        val statsDeviceId = if (session.parms["shareStats"] == "true") {
+            if (session.headers["x-dune-panel"] != "1") return error("Start sharing from the panel")
+            dubblegConnection.credential()?.deviceId ?: return error("Connect DubbleG before enabling stats sharing")
+        } else null
         val result = startDuneSession(colors, first, nowMs, names)
-        return applyDuneAction { result }
+        return applyDuneAction {
+            if (result is DuneActionResult.Success) DuneActionResult.Success(result.session.copy(statsDeviceId = statsDeviceId)) else result
+        }
     }
 
     private fun pauseDune(nowMs: Long): Response = withDuneLock {
@@ -233,6 +270,7 @@ class PanelServer(
 
     private fun duneJson(dune: DuneSession): JSONObject = JSONObject()
         .put("testMode", false)
+        .put("shareStats", dune.statsDeviceId != null)
         .put("active", dune.active)
         .put("round", dune.round)
         .put("conflict", dune.conflictTier.number)

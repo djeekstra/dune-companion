@@ -72,6 +72,8 @@ data class DuneSession(
     val turnRecords: List<DuneTurnRecord> = emptyList(),
     val nextTurnRecordId: Long = 1L,
     val testMode: Boolean = false,
+    // Consent for this game only, pinned to the connected stats phone at setup.
+    val statsDeviceId: String? = null,
     val winner: DunePlayerColor? = null,
     val endedAtMs: Long? = null,
     val winnerEndsAtMs: Long? = null,

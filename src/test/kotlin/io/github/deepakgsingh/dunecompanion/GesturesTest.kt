@@ -231,24 +231,32 @@ class GesturesTest {
         assertEquals(Config.SHAKE_CONFIRM_MS, now - detectedAt)
     }
 
-    private fun taps(vararg atMs: Long): Int {
+    private fun taps(vararg atMs: Long): TapAction? {
         var counter = TapCounter()
-        var fires = 0
-        atMs.forEach { t -> val (next, fired) = counter.observe(t); counter = next; if (fired) fires++ }
-        return fires
+        atMs.forEach { counter = counter.observe(it).first }
+        return counter.resolve(atMs.last() + Config.TRIPLE_TAP_GAP_MS)
     }
 
     @Test
-    fun threeQuickTapsEndATurnAndTwoDoNot() {
-        assertEquals(1, taps(1_000L, 1_250L, 1_500L))
-        assertEquals(0, taps(1_000L, 1_250L))
+    fun doubleAndTripleTapsSelectDifferentActions() {
+        assertEquals(TapAction.AGENT, taps(1_000L, 1_250L))
+        assertEquals(TapAction.REVEAL, taps(1_000L, 1_250L, 1_500L))
+        assertEquals(null, taps(1_000L))
+        assertEquals(null, taps(1_000L, 1_100L, 1_200L, 1_300L))
+    }
+
+    @Test
+    fun doubleTapWaitsSoARevealCannotEndAnAgentTurnFirst() {
+        val two = TapCounter().observe(1_000L).first.observe(1_200L).first
+        assertEquals(null, two.resolve(1_200L + Config.TRIPLE_TAP_GAP_MS - 1))
+        val three = two.observe(1_400L).first
+        assertEquals(TapAction.REVEAL, three.resolve(1_800L))
     }
 
     @Test
     fun tapsTooFarApartStartOver() {
-        assertEquals(0, taps(1_000L, 1_250L, 2_000L))
-        // ...and the late tap is the first of a fresh triple.
-        assertEquals(1, taps(1_000L, 1_250L, 2_000L, 2_200L, 2_400L))
+        assertEquals(null, taps(1_000L, 1_250L, 2_000L))
+        assertEquals(TapAction.AGENT, taps(1_000L, 2_000L, 2_200L))
     }
 
     private fun shakeWith(magnitude: Float): Boolean {

@@ -1,0 +1,105 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dune Companion — repository preview</title><style>
+*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#e6edf3;font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}header{padding:18px 32px;background:#010409;border-bottom:1px solid #30363d}header strong{color:#58a6ff}small{color:#9198a1}nav{padding:12px 32px;border-bottom:1px solid #30363d}nav span{margin-right:24px}main{max-width:1240px;margin:28px auto;display:grid;grid-template-columns:minmax(0,900px) 270px;gap:28px;padding:0 20px}article{border:1px solid #30363d;border-radius:6px;padding:28px 34px}aside{font-size:14px}h1,h2{line-height:1.3;border-bottom:1px solid #30363d;padding-bottom:10px}h1{font-size:32px}h2{font-size:24px;margin-top:32px}a{color:#58a6ff;text-decoration:none}img{max-width:100%;height:auto;border-radius:8px}pre{overflow:auto;background:#161b22;padding:16px;border-radius:6px;font-size:12px}code{font-family:ui-monospace,monospace}li{margin:5px 0}.badge{border:1px solid #30363d;border-radius:20px;padding:2px 8px;font-size:12px;color:#9198a1}.topic{display:inline-block;background:#122741;color:#79c0ff;border-radius:14px;padding:2px 10px;margin:4px 2px}aside h3{font-size:17px}.note{padding:10px 32px;background:#161b22;color:#9198a1;font-size:12px}@media(max-width:850px){main{display:block}aside{margin-top:24px}}
+</style><header><strong>deepakgsingh / dune-companion</strong> <span class="badge">Private</span></header><nav><span>〈 〉 Code</span><span>Issues</span><span>Pull requests</span><span>Actions</span></nav><div class="note">Local design preview · README content is real; GitHub chrome and About details are illustrative. Nothing has been published.</div><main><article><h1>Dune Companion</h1>
+<p>An Android companion for <strong>Dune: Imperium and its expansions</strong>, built to track the game, measure time taken
+by each player and round, and record stats to look back on after play.</p>
+<p>One phone lies on the table, showing whose turn it is and announcing handovers and phases
+out loud. Players use taps, spins, shakes and drawn gestures to keep play moving. A second
+phone opens a browser panel for setup, scoring, corrections and stats.</p>
+<p><em>Fan-made. Not affiliated with or endorsed by Dire Wolf or Legendary.</em></p>
+<h2>At the table</h2>
+<p><img alt="Animated guide: double tap or spin for agent, triple tap or shake for reveal and combat, draw S/C/M for claims" src="media/gestures.gif" /></p>
+<p><em>Illustrated gesture guide. <a href="gesture-demo.html">HTML animation source</a> ·
+<a href="../promo/dune-companion-promo-v3.mp4">Original promo video</a> (shows the earlier controls).</em></p>
+<ol>
+<li>Open the Android app and scan its QR code with a second phone.</li>
+<li>Set up the players in the browser panel, then lay the display phone on the table.</li>
+<li>Play the physical game. The companion handles turn timing, spoken handovers and round flow.</li>
+<li>Review the finished game's stats locally; optionally share an unlisted DubbleG page.</li>
+</ol>
+<h2>After the game</h2>
+<p>The browser panel's <strong>STATS</strong> tab shows your saved games, time per player and round, agent
+and reveal turns, and victory-point checkpoints. These stats stay on the phone and work offline.</p>
+<p><img alt="Offline local stats in the app's browser panel, using fictional game data" src="media/local-stats-example.png" /></p>
+<p><em>The app's local stats layout, illustrated with fictional game data and seat names.
+<a href="local-stats-example.html">Open the offline example</a>.</em></p>
+<h2>Features</h2>
+<ul>
+<li><strong>Gestures on the display phone:</strong></li>
+<li><strong>Spin it a full turn</strong> while it lies face up to end an agent turn. Two half-turns the same
+    way also count. It must have been lying still for a second first, so setting it down with a
+    twist doesn't count.</li>
+<li><strong>Shake it</strong> in the hand to reveal. During combat, a shake marks combat resolved.</li>
+<li><strong>Double-tap</strong> to end an agent turn; <strong>triple-tap</strong> to finish a reveal or resolve combat.
+    The app waits 400 ms after the last tap to distinguish them.</li>
+<li>Draw <strong>S</strong>, <strong>C</strong> or <strong>M</strong> to claim Swordmaster, High Council or Mentat for the current player.</li>
+<li><strong>Voice:</strong> the phone's text-to-speech names whoever has the turn, and calls out phases, turn
+  timers (5, 7 and 10 minutes) and hourly game time. Recorded clips replace any line if
+  installed.</li>
+<li><strong>Round flow:</strong> rounds 1–10, conflict tiers, and the automatic makers and recall phases.</li>
+<li>Swordmaster, Mentat and High Council tracking.</li>
+<li>Victory-point checkpoints after conflicts 5, 9 and 10.</li>
+<li>Undo for the last turn and the last round.</li>
+<li><strong>Admin panel:</strong> served by the display phone on port 8080 to any browser on the same Wi-Fi,
+  or on the display phone's hotspot. The display shows a QR code for it between games.</li>
+<li><strong>Game is saved</strong> on every change, so closing the app or a restart picks up where it was.</li>
+<li><strong>Victory-point checkpoints</strong> after conflicts 5 and 9, and at the end. The companion asks for
+  the scores, and once they are entered it reads the standings back, leader first.</li>
+<li><strong>Stats:</strong> every game that ends with a winner is saved on the display phone. The panel's
+  STATS tab shows the live game and every past game: game time, time per player and per round,
+  agent vs reveal turns, and victory points by checkpoint. It also shows all-time wins and
+  averages by player name, and has a JSON export. The history is only on the phone, so
+  uninstalling the app deletes it.</li>
+<li><strong>Optional web stats:</strong> host your finished-game stats on a DubbleG webpage to view and share.
+  Games stay on your phone unless you choose to share them.</li>
+<li><strong>Guide:</strong> the panel's GUIDE tab covers setup, gestures, the round flow and troubleshooting.</li>
+</ul>
+<h2>Build and install</h2>
+<p>Requires JDK 17 and the Android SDK (API 34). The app runs on Android 10 or later.
+See <a href="distribution.md">test-build distribution</a> for signing and Firebase setup.</p>
+<pre><code class="language-sh">./gradlew testDebugUnitTest          # rules, gesture and speech tests
+./gradlew assembleRelease            # shrunk APK, ~1.4 MB
+adb install -r build/outputs/apk/release/dune-companion-release.apk
+adb logcat -s DuneTilt DuneAudio     # gesture and audio logs
+</code></pre>
+<h2>Using it</h2>
+<ol>
+<li>Open the app on the display phone and allow notifications.</li>
+<li>Scan the QR code with a second phone and start a game from the panel.</li>
+<li>Lay the display phone face up on the table.</li>
+<li><strong>Long-press</strong> the display to show the gesture debug overlay. It has sensors, live spin
+   degrees and fire counts, and an exit button.</li>
+<li>To close the app, long-press the display and choose <strong>EXIT · KEEP GAME</strong> (clocks pause
+   until resumed from the panel) or <strong>EXIT · END GAME</strong> (tap twice; the game is discarded).
+   <strong>Stop</strong> on the notification keeps the game.</li>
+</ol>
+<p>Recorded clips are optional. Push them to the app's <code>files/clips/</code> directory, named as in
+<code>DuneSpeech.kt</code> (for example <code>dune_phase_combat.wav</code>).</p>
+<h2>Optional DubbleG stats</h2>
+<p>DubbleG is a local board game meetup network I created. If you'd like, you can also host your
+finished-game stats on a DubbleG webpage and share its unlisted link. Sharing is optional and
+off by default; anyone with the link can view the names, scores and timings you share.</p>
+<p><img alt="Optional DubbleG webpage showing anonymized finished-game stats" src="media/stats-example.png" /></p>
+<p><em>Optional hosted webpage: names replaced by seat colors; date and game link removed.
+<a href="stats-example.html">Full web stats example</a>.</em></p>
+<p><a href="dubbleg-setup.md">Connection and sharing details</a>.</p>
+<h2>Status</h2>
+<p>An early companion tested at the table; gesture changes still need a device playtest.
+The reveal/extra-agent voice reminder remains a <a href="voice-reminder-proposal.md">design proposal</a>.</p>
+<p>Earlier sensor tuning: The gestures were tuned on a Pixel 4a (Android 16):</p>
+<ul>
+<li><strong>Spin:</strong> fires at 300°. Deliberate spins coasted to rest at 314–329°; accidental handling
+  never passed about 240°.</li>
+<li><strong>Shake:</strong> fires at 20 m/s² using the hardware linear-acceleration sensor. Hard tilting
+  peaked at 12.9, a real shake at 46–62.</li>
+</ul>
+<p>Sensor draw is about 1.7 mA rated, under 0.2% of the battery over a three-hour game.</p>
+<p>Not yet verified:</p>
+<ul>
+<li>the panel over a hotspot</li>
+<li>a controlled full-game battery test</li>
+<li>more phone models</li>
+</ul>
+<p>Thresholds live in <code>Config.kt</code>.</p>
+<h2>Licence</h2>
+<p>Not chosen yet. Until one is added, all rights are reserved.</p></article><aside><h3>About</h3><p>Track Dune: Imperium games, time taken and finished-game stats with an Android companion.</p><p><span class="topic">android</span><span class="topic">kotlin</span><span class="topic">dune-imperium</span><span class="topic">board-game</span></p><hr style="border:0;border-top:1px solid #30363d"><h3>Project status</h3><p>Early · tested at the table</p><small>Suggested About description and topics. These have not been applied to GitHub.</small></aside></main></html>

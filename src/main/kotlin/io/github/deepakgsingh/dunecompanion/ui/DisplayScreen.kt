@@ -26,6 +26,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import android.os.SystemClock
+import io.github.deepakgsingh.dunecompanion.Config.TRIPLE_TAP_GAP_MS
+import io.github.deepakgsingh.dunecompanion.TapAction
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,8 +57,10 @@ fun DisplayScreen() {
     val urls by Steward.panelUrls.collectAsState()
     val gestures by Steward.gestures.collectAsState()
     val effect by Steward.duneEffects.collectAsState(initial = null as DuneActionEffectEvent?)
+    val showDubbleg by Steward.dubblegSettings.collectAsState()
     var showDebug by remember { mutableStateOf(false) }
     var taps by remember { mutableStateOf(TapCounter()) }
+    var pendingTap by remember { mutableStateOf<Job?>(null) }
 
     Box(
         Modifier
@@ -61,16 +69,29 @@ fun DisplayScreen() {
             // Clear of the camera hole: on a Pixel 4a it sits over the top-left corner, and ate
             // the start of "ROUND 2".
             .windowInsetsPadding(WindowInsets.displayCutout)
-            .pointerInput(Unit) {
+            .pointerInput(session.active, session.round, session.currentPlayer, session.phase, session.paused, showDebug, showDubbleg) {
+                taps = TapCounter()
+                val gestureScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.currentCoroutineContext())
                 detectTapGestures(
-                    // Fallback for a spin that will not register: a triple tap. Refused outside
-                    // agent turns exactly like a spin, so idle tapping between games is inert.
-                    onTap = {
-                        val (next, tripled) = taps.observe(System.currentTimeMillis())
-                        taps = next
-                        if (tripled) Steward.requestTapTurnEnd()
+                    onTap = tap@{
+                        if (showDebug || showDubbleg) return@tap
+                        pendingTap?.cancel()
+                        taps = taps.observe(SystemClock.uptimeMillis()).first
+                        pendingTap = gestureScope.launch {
+                            delay(TRIPLE_TAP_GAP_MS)
+                            when (taps.resolve(SystemClock.uptimeMillis())) {
+                                TapAction.AGENT -> Steward.requestTapTurnEnd()
+                                TapAction.REVEAL -> Steward.requestTapReveal()
+                                null -> Unit
+                            }
+                            taps = TapCounter()
+                        }
                     },
-                    onLongPress = { showDebug = !showDebug },
+                    onLongPress = {
+                        pendingTap?.cancel()
+                        taps = TapCounter()
+                        showDebug = !showDebug
+                    },
                 )
             },
     ) {
@@ -90,7 +111,8 @@ fun DisplayScreen() {
         } else {
             IdleCard(urls, onExit = { quitApp(endGame = false) })
         }
-        if (showDebug) DebugOverlay(gestures, gameRunning = session.active)
+        if (showDebug) DebugOverlay(gestures, gameRunning = session.active, onDubbleg = { Steward.showDubblegSettings() })
+        if (showDubbleg) DubblegSettings(onDismiss = { Steward.showDubblegSettings(false) })
     }
 }
 
@@ -134,7 +156,7 @@ private fun IdleCard(urls: List<String>, onExit: () -> Unit) {
 }
 
 @Composable
-private fun DebugOverlay(g: GestureDebug, gameRunning: Boolean) {
+private fun DebugOverlay(g: GestureDebug, gameRunning: Boolean, onDubbleg: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().background(Color(0xE0000000)).padding(16.dp),
     ) {
@@ -152,6 +174,8 @@ private fun DebugOverlay(g: GestureDebug, gameRunning: Boolean) {
             Text(it, color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
         }
         Spacer(Modifier.height(16.dp))
+        ExitButton("DUBBLEG STATS", onDubbleg)
+        Spacer(Modifier.height(12.dp))
         if (!gameRunning) {
             ExitButton("EXIT", onExit = { quitApp(endGame = false) })
         } else {

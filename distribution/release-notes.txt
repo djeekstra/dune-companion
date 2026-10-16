@@ -1,13 +1,15 @@
-Dune Companion: a game companion for Dune: Imperium. Fan-made, not affiliated with Dire Wolf or Legendary.
+Dune Companion 0.2
 
-You need two devices: a phone running this app (the "display", which lies on the table) and any other phone, tablet or laptop with a browser (the "admin panel").
+Optional finished-game stats sharing on DubbleG:
+- Ask the DubbleG admin for a phone credential from Stats devices.
+- In the browser panel's game setup, choose CONNECT DUBBLEG, then enter the credential on the display phone.
+- Check SHARE FINISHED STATS ON DUBBLEG before starting to share that game's results when a winner is recorded.
+- You can also share a past game from STATS. Copy its unlisted link from the game's stats page.
 
-First run:
-1. Install and open Dune Companion on the display phone. Allow notifications so it keeps running.
-2. Put the other device on the same Wi-Fi as the display phone and scan the QR code on the display. If the page won't load (guest or office Wi-Fi often blocks it), turn on the display phone's hotspot, join it from the other device, and scan again.
-3. On the panel, open the GUIDE tab. It explains setup, the gestures (spin, shake, tap, letters), scoring and stats.
-4. Turn the display phone's media volume up. The companion speaks.
+Games stay local until you choose to share them. Anyone with the link can view them.
+Keep the app open with internet access for pending uploads; reopening resumes retries.
+The DubbleG backend must support Stats devices before connecting.
 
-Stats for every finished game are kept on the display phone. Use EXPORT HISTORY on the STATS tab to back them up.
-
-Found a bug or something confusing? Tell Deepak what you were doing and what happened.
+Start a game by scanning the display's QR code with a second phone on the same Wi-Fi
+or hotspot. Spin the display phone flat to end an agent turn, shake to reveal, or
+double-tap to end an agent turn, or triple-tap to reveal / complete combat. Long-press for debug/exit. The panel's GUIDE has full instructions.

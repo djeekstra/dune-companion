@@ -11,3 +11,7 @@ captures/
 *.jks
 *.keystore
 keystore.properties
+
+# Local compiler cache and environment credentials
+.kotlin/
+.aws

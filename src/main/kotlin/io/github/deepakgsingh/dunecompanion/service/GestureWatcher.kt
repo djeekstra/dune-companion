@@ -76,7 +76,7 @@ suspend fun runGestureWatcher(context: Context) = coroutineScope {
     // the software path stays as the fallback — see GestureListener.onLinear.
     val linear = sensors.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
     if (accelerometer == null) Log.w(TAG, "no accelerometer; shake disabled")
-    if (gyroscope == null) Log.w(TAG, "no gyroscope; spin disabled, triple tap still works")
+    if (gyroscope == null) Log.w(TAG, "no gyroscope; spin disabled, double tap still works")
 
     val listener = GestureListener(hardwareLinear = linear != null)
 
@@ -86,6 +86,14 @@ suspend fun runGestureWatcher(context: Context) = coroutineScope {
             if (Steward.dune.value.acceptsSpin()) {
                 Steward.updateGestures { it.copy(taps = it.taps + 1) }
                 listener.endAgentTurn(System.currentTimeMillis(), source = "tap")
+            }
+        }
+    }
+
+    launch {
+        Steward.tapReveal.collect {
+            if (Steward.dune.value.acceptsGestures()) {
+                listener.reveal(System.currentTimeMillis(), source = "tap")
             }
         }
     }
@@ -305,7 +313,7 @@ private class GestureListener(private val hardwareLinear: Boolean) : SensorEvent
         }
     }
 
-    private fun reveal(now: Long) {
+    fun reveal(now: Long, source: String = "shake") {
         val outcome = withDuneLock {
             val previous = Steward.dune.value
             // In combat the shake means "combat is resolved".
@@ -321,8 +329,8 @@ private class GestureListener(private val hardwareLinear: Boolean) : SensorEvent
         }
         when (outcome) {
             is DuneActionResult.Success -> {
-                Log.i(TAG, "shake: ${outcome.session.phase.wireName}")
-                Steward.updateGestures { it.copy(shakes = it.shakes + 1) }
+                Log.i(TAG, "$source: ${outcome.session.phase.wireName}")
+                Steward.updateGestures { if (source == "shake") it.copy(shakes = it.shakes + 1) else it.copy(taps = it.taps + 1) }
             }
             is DuneActionResult.Error -> Log.i(TAG, "shake rejected: ${outcome.message}")
         }

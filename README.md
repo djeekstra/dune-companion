@@ -1,11 +1,35 @@
 # Dune Companion
 
-A game companion for **Dune: Imperium** that runs on an Android phone. One phone lies on the
-table: it shows whose turn it is, times each turn, and announces the handovers and the phases
-out loud. Players drive it with gestures instead of tapping. A second phone can open an admin
-panel in its browser for setup, scoring and corrections.
+An Android companion for **Dune: Imperium and its expansions**, built to track the game, measure time taken
+by each player and round, and record stats to look back on after play.
+
+One phone lies on the table, showing whose turn it is and announcing handovers and phases
+out loud. Players use taps, spins, shakes and drawn gestures to keep play moving. A second
+phone opens a browser panel for setup, scoring, corrections and stats.
 
 *Fan-made. Not affiliated with or endorsed by Dire Wolf or Legendary.*
+
+## At the table
+
+![Animated guide: double tap or spin for agent, triple tap or shake for reveal and combat, draw S/C/M for claims](docs/media/gestures.gif)
+
+*Illustrated gesture guide. [HTML animation source](docs/gesture-demo.html) ·
+[Original promo video](promo/dune-companion-promo-v3.mp4) (shows the earlier controls).*
+
+1. Open the Android app and scan its QR code with a second phone.
+2. Set up the players in the browser panel, then lay the display phone on the table.
+3. Play the physical game. The companion handles turn timing, spoken handovers and round flow.
+4. Review the finished game's stats locally; optionally share an unlisted DubbleG page.
+
+## After the game
+
+The browser panel's **STATS** tab shows your saved games, time per player and round, agent
+and reveal turns, and victory-point checkpoints. These stats stay on the phone and work offline.
+
+![Offline local stats in the app's browser panel, using fictional game data](docs/media/local-stats-example.png)
+
+*The app's local stats layout, illustrated with fictional game data and seat names.
+[Open the offline example](docs/local-stats-example.html).*
 
 ## Features
 
@@ -14,7 +38,9 @@ panel in its browser for setup, scoring and corrections.
     way also count. It must have been lying still for a second first, so setting it down with a
     twist doesn't count.
   - **Shake it** in the hand to reveal. During combat, a shake marks combat resolved.
-  - **Triple-tap** the screen to end an agent turn, as a fallback.
+  - **Double-tap** to end an agent turn; **triple-tap** to finish a reveal or resolve combat.
+    The app waits 400 ms after the last tap to distinguish them.
+  - Draw **S**, **C** or **M** to claim Swordmaster, High Council or Mentat for the current player.
 - **Voice:** the phone's text-to-speech names whoever has the turn, and calls out phases, turn
   timers (5, 7 and 10 minutes) and hourly game time. Recorded clips replace any line if
   installed.
@@ -32,11 +58,14 @@ panel in its browser for setup, scoring and corrections.
   agent vs reveal turns, and victory points by checkpoint. It also shows all-time wins and
   averages by player name, and has a JSON export. The history is only on the phone, so
   uninstalling the app deletes it.
+- **Optional web stats:** host your finished-game stats on a DubbleG webpage to view and share.
+  Games stay on your phone unless you choose to share them.
 - **Guide:** the panel's GUIDE tab covers setup, gestures, the round flow and troubleshooting.
 
 ## Build and install
 
-Requires JDK 17 and the Android SDK (API 34).
+Requires JDK 17 and the Android SDK (API 34). The app runs on Android 10 or later.
+See [test-build distribution](docs/distribution.md) for signing and Firebase setup.
 
 ```sh
 ./gradlew testDebugUnitTest          # rules, gesture and speech tests
@@ -44,51 +73,6 @@ Requires JDK 17 and the Android SDK (API 34).
 adb install -r build/outputs/apk/release/dune-companion-release.apk
 adb logcat -s DuneTilt DuneAudio     # gesture and audio logs
 ```
-
-## Distributing test builds
-
-Builds go to testers through **Firebase App Distribution**. The app includes no Firebase SDK,
-only the uploaded APK.
-
-One-time setup:
-
-1. Create the release key and keep it backed up somewhere safe. If it is lost, testers must
-   uninstall to update, which deletes their game history.
-
-   ```sh
-   keytool -genkeypair -v -keystore ~/keys/dune-companion.jks -alias dune-companion \
-     -keyalg RSA -keysize 4096 -validity 10000
-   ```
-
-2. Create `keystore.properties` next to `build.gradle.kts`. It is gitignored.
-
-   ```properties
-   storeFile=/home/you/keys/dune-companion.jks
-   storePassword=...
-   keyAlias=dune-companion
-   keyPassword=...
-   ```
-
-   Without this file, release builds are signed with the debug key. That is fine for local
-   testing but must not be sent to testers.
-3. In the [Firebase console](https://console.firebase.google.com), create a project and add an
-   Android app with the package `io.github.deepakgsingh.dunecompanion`. Note its App ID
-   (`1:…:android:…`). Under App Distribution, create a tester group `trial` and add emails.
-4. Install the Firebase CLI and run `firebase login`.
-
-For each release:
-
-```sh
-# bump versionCode (and versionName) in build.gradle.kts first — updates need a higher code
-./gradlew testDebugUnitTest assembleRelease
-apksigner verify --print-certs build/outputs/apk/release/dune-companion-release.apk   # release cert, not "Android Debug"
-firebase appdistribution:distribute build/outputs/apk/release/dune-companion-release.apk \
-  --app 1:458857310035:android:2c87d4d1498bc67818e3a6 --project dune-companion-trial --groups trial --release-notes-file distribution/release-notes.txt
-```
-
-Testers get an email, accept it, and install through the App Tester app. That app also tells
-them about updates. `distribution/release-notes.txt` holds the first-run steps, because the
-in-app guide can only be reached once the panel is connected.
 
 ## Using it
 
@@ -104,9 +88,25 @@ in-app guide can only be reached once the panel is connected.
 Recorded clips are optional. Push them to the app's `files/clips/` directory, named as in
 `DuneSpeech.kt` (for example `dune_phase_combat.wav`).
 
+## Optional DubbleG stats
+
+DubbleG is a local board game meetup network I created. If you'd like, you can also host your
+finished-game stats on a DubbleG webpage and share its unlisted link. Sharing is optional and
+off by default; anyone with the link can view the names, scores and timings you share.
+
+![Optional DubbleG webpage showing anonymized finished-game stats](docs/media/stats-example.png)
+
+*Optional hosted webpage: names replaced by seat colors; date and game link removed.
+[Full web stats example](docs/stats-example.html).*
+
+[Connection and sharing details](docs/dubbleg-setup.md).
+
 ## Status
 
-Early. The gestures were tuned on a Pixel 4a (Android 16):
+An early companion tested at the table; gesture changes still need a device playtest.
+The reveal/extra-agent voice reminder remains a [design proposal](docs/voice-reminder-proposal.md).
+
+Earlier sensor tuning: The gestures were tuned on a Pixel 4a (Android 16):
 
 - **Spin:** fires at 300°. Deliberate spins coasted to rest at 314–329°; accidental handling
   never passed about 240°.
@@ -118,7 +118,7 @@ Sensor draw is about 1.7 mA rated, under 0.2% of the battery over a three-hour g
 Not yet verified:
 
 - the panel over a hotspot
-- a full three-hour game
+- a controlled full-game battery test
 - more phone models
 
 Thresholds live in `Config.kt`.

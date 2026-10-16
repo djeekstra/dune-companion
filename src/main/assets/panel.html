@@ -45,6 +45,12 @@
   </div>
   <label>FIRST PLAYER</label><select id="first"><option>BLUE</option><option>GREEN</option><option>RED</option><option>YELLOW</option></select>
   <div id="setupOrder" class="turnOrder"></div>
+  <div style="margin-top:16px">
+    <label style="display:flex;align-items:center;gap:10px"><input id="shareStats" type="checkbox" disabled style="width:20px;margin:0"> SHARE FINISHED STATS ON DUBBLEG</label>
+    <p class="note">Uploads names, scores and turn timings after a winner is recorded. Anyone with the unlisted link can view them.</p>
+    <p id="setupDubbleg" class="note"></p>
+    <button id="connectDubbleg" onclick="connectDubbleg()">CONNECT DUBBLEG</button>
+  </div>
   <button class="primary" style="margin-top:16px" onclick="startGame('live')">START GAME</button>
 </section>
 <section id="game"><div id="status"></div><div id="autoAdvance"><div id="autoText"></div><div class="track"><div class="fill" id="autoFill"></div></div></div>
@@ -63,6 +69,7 @@
 <button onclick="fire('/debug/reset-counts','COUNTS RESET')">RESET GESTURE COUNTS</button></details>
 </div>
 <div class="tab" id="tab-stats">
+  <div id="dubblegConnection" class="note"></div>
   <div id="statsCurrent"></div>
   <div id="statsDetail"></div>
   <h2>ALL GAMES</h2><div id="statsAllTime" class="note">…</div>
@@ -85,7 +92,7 @@
 <ul>
 <li><b>Spin it a full turn</b> while it lies flat to end an agent turn. Two half-turns the same way also count. Let it rest for a second first. A spin as you set it down doesn't count.</li>
 <li><b>Shake it</b> in the hand to finish your reveal turn. During combat, a shake marks combat resolved.</li>
-<li><b>Triple-tap</b> the screen to end an agent turn, as a fallback.</li>
+<li><b>Double-tap</b> the screen to end an agent turn. <b>Triple-tap</b> to finish your reveal or resolve combat. Pause briefly after tapping; the app waits for the last tap before acting.</li>
 <li><b>Draw a letter</b> on the screen to claim a space for whoever has the turn: <b>S</b> Swordmaster, <b>C</b> High Council, <b>M</b> Mentat. Experimental: S and C read well, M less so. If a letter isn't recognised, nothing happens.</li>
 <li><b>Long-press</b> the display for the gesture debug overlay and the exit buttons.</li>
 </ul>
@@ -106,6 +113,7 @@
 <li>Swordmaster and High Council toggles are under <b>SWORDMASTER · HIGH COUNCIL</b>. Tap again to take one back.</li>
 </ul>
 <h2>STATS</h2>
+<p>To share a finished game, choose <b>CONNECT DUBBLEG</b> in game setup and enter the one-time phone credential on the display. Check <b>SHARE FINISHED STATS ON DUBBLEG</b> before starting to share when a winner is recorded. You can also open a past game here and choose <b>SHARE ON DUBBLEG</b>. This uploads names, scores and turn timings and returns an unlisted link. Anyone with the link can view it. Uploads retry while the display app is running with internet access. Deleting local history does not delete a shared page; ask the DubbleG admin to revoke it.</p>
 <p>Every game that ends with a winner is saved on the display phone. The <b>STATS</b> tab shows the current game live and every past game: game time, turns and time per player, agent vs reveal turns, time per round, and the victory points at each checkpoint. <b>ALL GAMES</b> totals wins and averages by player name, so type names the same way each time. Use <b>EXPORT HISTORY</b> now and then as a backup.</p>
 <h2>TROUBLESHOOTING</h2>
 <ul>
@@ -154,8 +162,8 @@ document.addEventListener('input',previewOrder);document.addEventListener('chang
 function selectedColors(){var n=+document.getElementById('count').value,s=document.querySelectorAll('.seat'),a=[];for(var i=0;i<n;i++)a.push(s[i].value.toLowerCase());return a}
 // What a seat is called when two people share it. Matches DuneSession.seatName on the app side.
 function seatName(names,mates,i){return [(names[i].value||'').trim(),(mates[i].value||'').trim()].filter(Boolean).join(' & ')}
-function startGame(mode){var c=selectedColors(),n=+document.getElementById('count').value,f=document.getElementById('first').value.toLowerCase(),p='/dune/start?mode='+mode+'&colors='+c.join(',')+'&first='+f,inputs=document.querySelectorAll('.playerName'),mates=document.querySelectorAll('.playerName2');if(new Set(c).size!==c.length){toast('COLORS MUST BE UNIQUE');return}if(c.indexOf(f)<0){toast('FIRST PLAYER NOT SEATED');return}for(var i=0;i<n;i++){var name=inputs[i].value.trim(),mate=mates[i].value.trim();if(name)p+='&name'+i+'='+encodeURIComponent(name);if(mate)p+='&name'+i+'b='+encodeURIComponent(mate)}fire(p,'GAME STARTED')}
-function fire(path,msg){fetch(path).then(function(r){return r.json().catch(function(){return {}}).then(function(j){if(!r.ok)throw Error(j.error||'FAILED');toast(msg);refresh()})}).catch(function(e){toast(e.message||'NO CONNECTION')})}
+function startGame(mode){var c=selectedColors(),n=+document.getElementById('count').value,f=document.getElementById('first').value.toLowerCase(),p='/dune/start?shareStats='+document.getElementById('shareStats').checked+'&mode='+mode+'&colors='+c.join(',')+'&first='+f,inputs=document.querySelectorAll('.playerName'),mates=document.querySelectorAll('.playerName2');if(new Set(c).size!==c.length){toast('COLORS MUST BE UNIQUE');return}if(c.indexOf(f)<0){toast('FIRST PLAYER NOT SEATED');return}for(var i=0;i<n;i++){var name=inputs[i].value.trim(),mate=mates[i].value.trim();if(name)p+='&name'+i+'='+encodeURIComponent(name);if(mate)p+='&name'+i+'b='+encodeURIComponent(mate)}document.getElementById('shareStats').checked=false;fire(p,'GAME STARTED')}
+function fire(path,msg){fetch(path,{headers:{'X-Dune-Panel':'1'}}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){if(!r.ok)throw Error(j.error||'FAILED');toast(msg);refresh()})}).catch(function(e){toast(e.message||'NO CONNECTION')})}
 function endGame(c){if(c){fire('/dune/end?winner='+c,c.toUpperCase()+' WINS');return}if(window.confirm('END THE CURRENT GAME?')){fire('/dune/end-game','GAME ENDED')}}
 function pauseGame(){fire('/dune/pause',latest.paused?'TIMER RESUMED':'GAME TIMER PAUSED')}
 function endRound(){if(window.confirm('END THIS ROUND AND START THE NEXT ROUND?')){fire('/dune/end-round','NEXT ROUND STARTED')}}
@@ -230,8 +238,10 @@ function dur(ms){var t=Math.max(0,Math.round((ms||0)/1000)),h=Math.floor(t/3600)
 function pct(x){return Math.round((x||0)*100)+'%'}
 function day(ms){return ms?new Date(ms).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):''}
 function dot(seat){return '<i class="dot" style="background:'+(SEAT_COLOURS[seat]||'#888')+'"></i>'}
-function getJson(path){return fetch(path).then(function(r){return r.json().then(function(j){if(!r.ok)throw Error(j.error||'FAILED');return j})})}
-function loadStats(){loadCurrentStats();getJson('/stats/all-time').then(renderAllTime).catch(function(){});getJson('/stats/games').then(renderGames).catch(function(){})}
+function getJson(path){return fetch(path,{headers:{'X-Dune-Panel':'1'}}).then(function(r){return r.json().then(function(j){if(!r.ok)throw Error(j.error||'FAILED');return j})})}
+function loadDubblegConnection(){getJson('/stats/connection').then(function(c){document.getElementById('dubblegConnection').textContent=c.connected?'DUBBLEG CONNECTED · '+c.name:'Connect DubbleG in game setup to share finished stats.';document.getElementById('setupDubbleg').textContent=c.connected?'Connected as '+c.name+'. Sharing is off unless checked for this game.':'Connect this phone once to enable sharing.';document.getElementById('shareStats').disabled=!c.connected;if(!c.connected)document.getElementById('shareStats').checked=false;document.getElementById('connectDubbleg').textContent=c.connected?'DUBBLEG CONNECTION':'CONNECT DUBBLEG'}).catch(function(){})}
+function connectDubbleg(){fetch('/stats/connect',{method:'POST',headers:{'X-Dune-Panel':'1'}}).then(function(r){if(!r.ok)throw Error('Could not open connection');toast('CONTINUE ON THE DISPLAY PHONE')}).catch(function(e){toast(e.message)})}
+function loadStats(){loadDubblegConnection();loadCurrentStats();getJson('/stats/all-time').then(renderAllTime).catch(function(){});getJson('/stats/games').then(renderGames).catch(function(){})}
 function loadCurrentStats(){getJson('/stats/current').then(function(st){document.getElementById('statsCurrent').innerHTML=st.active?'<h2>THIS GAME · LIVE</h2>'+gameStatsHtml(st):''}).catch(function(){})}
 function gameStatsHtml(st){
  var h='<div class="tiles"><div class="tile"><span>GAME TIME</span><b>'+dur(st.gameMs)+'</b></div><div class="tile"><span>ROUNDS</span><b>'+st.rounds+'</b></div><div class="tile"><span>TURNS</span><b>'+st.turns+'</b></div><div class="tile"><span>AVG TURN</span><b>'+dur(st.averageTurnMs)+'</b></div></div>';
@@ -260,9 +270,11 @@ function renderAllTime(a){var el=document.getElementById('statsAllTime');if(!a.g
 function renderGames(r){var el=document.getElementById('statsGames');if(!r.games.length){el.innerHTML='GAMES APPEAR HERE ONCE A WINNER IS DECLARED.';return}
  el.innerHTML=r.games.map(function(g){return '<div class="game" onclick="openStats(\''+esc(g.sessionId)+'\')"><div class="meta">'+day(g.startedAtMs)+' · '+dur(g.gameMs)+' · '+g.rounds+' ROUNDS</div>'+dot(g.winner)+'<b>'+esc(g.winnerName)+'</b> WON · '+g.players.map(esc).join(', ')+'</div>'}).join('')}
 function openStats(id){openGame=id;getJson('/stats/game?id='+encodeURIComponent(id)).then(function(st){var el=document.getElementById('statsDetail');
- el.innerHTML='<h2>'+day(st.startedAtMs)+' · GAME</h2>'+gameStatsHtml(st)+'<div class="grid" style="margin-top:14px"><button onclick="closeStats()">CLOSE</button><button class="stop" onclick="deleteGame()">DELETE GAME</button></div>';el.scrollIntoView({behavior:'smooth'})}).catch(function(e){toast(e.message)})}
+ el.innerHTML='<h2>'+day(st.startedAtMs)+' · GAME</h2>'+gameStatsHtml(st)+'<div id="gameSharing" style="margin-top:14px"></div><div class="grid" style="margin-top:14px"><button onclick="closeStats()">CLOSE</button><button class="stop" onclick="deleteGame()">DELETE GAME</button></div>';loadSharing();el.scrollIntoView({behavior:'smooth'})}).catch(function(e){toast(e.message)})}
+function loadSharing(){var id=openGame;if(!id)return;getJson('/stats/share-status?id='+encodeURIComponent(id)).then(function(s){if(openGame!==id)return;var el=document.getElementById('gameSharing');if(!el)return;var h='<p class="note">'+esc(s.note)+'</p>';if(s.status==='shared'){h+='<a class="btn" target="_blank" rel="noopener noreferrer" href="'+esc(s.url)+'">OPEN STATS LINK</a><button style="margin-top:8px" id="copyStatsLink">COPY LINK</button>'}else if(s.status==='local'||s.status==='blocked'){h+='<button onclick="shareGame()">'+(s.status==='blocked'?'RETRY SHARING':'SHARE ON DUBBLEG')+'</button>'}el.innerHTML=h;if(s.status==='shared')document.getElementById('copyStatsLink').onclick=function(){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(s.url).then(function(){toast('LINK COPIED')}).catch(function(){window.prompt('Copy this link',s.url)})}else window.prompt('Copy this link',s.url)}}).catch(function(e){toast(e.message)})}
+function shareGame(){if(!openGame||!window.confirm('Upload player names, scores and turn timings to DubbleG? Anyone with the returned link can view them.'))return;fetch('/stats/share?id='+encodeURIComponent(openGame),{method:'POST',headers:{'X-Dune-Panel':'1'}}).then(function(r){return r.json().then(function(j){if(!r.ok)throw Error(j.error||'Could not share');toast('SHARING QUEUED');loadSharing()})}).catch(function(e){toast(e.message)})}
 function closeStats(){openGame='';document.getElementById('statsDetail').innerHTML=''}
 function deleteGame(){if(!openGame||!window.confirm('DELETE THIS GAME FROM THE HISTORY? THIS CANNOT BE UNDONE.'))return;getJson('/stats/delete?id='+encodeURIComponent(openGame)).then(function(){toast('GAME DELETED');closeStats();loadStats()}).catch(function(e){toast(e.message)})}
 showTab(({stats:1,guide:1})[location.hash.slice(1)]?location.hash.slice(1):'play');
-refresh();gestures();setInterval(refresh,1000);setInterval(function(){if(tab==='play')gestures()},1000);setInterval(tick,1000);setInterval(autoTick,100);setInterval(function(){if(tab==='stats')loadCurrentStats()},5000);
+loadDubblegConnection();refresh();gestures();setInterval(loadDubblegConnection,5000);setInterval(refresh,1000);setInterval(function(){if(tab==='play')gestures()},1000);setInterval(tick,1000);setInterval(autoTick,100);setInterval(function(){if(tab==='stats'){loadCurrentStats();loadSharing()}},5000);
 </script></body></html>

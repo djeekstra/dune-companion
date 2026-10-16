@@ -91,6 +91,7 @@ fun duneHistoryJson(session: DuneSession, nowMs: Long = System.currentTimeMillis
     return JSONObject()
         .put("schema_version", 1)
         .put("session_id", duneHistorySessionId(session))
+        .apply { session.statsDeviceId?.let { put("share_device_id", it) } }
         .put("game_type", "dune-imperium")
         .put("status", if (finished) "finished" else "in-progress")
         .put("finished", finished)

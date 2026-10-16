@@ -77,6 +77,7 @@ class DuneSessionStore(context: Context) {
             }))
             .put("nextTurnRecordId", session.nextTurnRecordId)
             .put("testMode", session.testMode)
+            .put("statsDeviceId", session.statsDeviceId)
             .put("winner", session.winner?.wireName)
             .put("endedAtMs", session.endedAtMs)
             .put("winnerEndsAtMs", session.winnerEndsAtMs)
@@ -224,6 +225,7 @@ class DuneSessionStore(context: Context) {
                 turnRecords = turnRecords,
                 nextTurnRecordId = json.optLong("nextTurnRecordId", (turnRecords.maxOfOrNull { it.id } ?: 0L) + 1L),
                 testMode = json.optBoolean("testMode", false),
+                statsDeviceId = json.optString("statsDeviceId").takeIf { Regex("[a-f0-9]{32}").matches(it) },
                 winner = DunePlayerColor.fromWireName(json.optString("winner")),
                 endedAtMs = json.optNullableLong("endedAtMs"),
                 winnerEndsAtMs = winnerEndsAt,

@@ -25,6 +25,8 @@ import io.github.deepakgsingh.dunecompanion.AudioSequence
 import io.github.deepakgsingh.dunecompanion.DuneActionResult
 import io.github.deepakgsingh.dunecompanion.DunePhase
 import io.github.deepakgsingh.dunecompanion.DuneSession
+import io.github.deepakgsingh.dunecompanion.DubblegConnection
+import io.github.deepakgsingh.dunecompanion.DubblegShareStore
 import io.github.deepakgsingh.dunecompanion.DuneHistoryStore
 import io.github.deepakgsingh.dunecompanion.DuneSessionStore
 import io.github.deepakgsingh.dunecompanion.duneAutoAdvance
@@ -87,8 +89,10 @@ class StewardService : Service() {
     private val clipsDir by lazy { File(filesDir, "clips").apply { mkdirs() } }
     private val duneStore by lazy { DuneSessionStore(applicationContext) }
     private val historyStore by lazy { DuneHistoryStore(applicationContext) }
+    private val dubblegConnection by lazy { DubblegConnection(applicationContext) }
+    private val shareStore by lazy { DubblegShareStore(File(filesDir, "dubbleg_shares.json")) }
     private val panelServer by lazy {
-        PanelServer(clipsDir, historyStore, assets.open("panel.html").bufferedReader().use { it.readText() })
+        PanelServer(clipsDir, historyStore, assets.open("panel.html").bufferedReader().use { it.readText() }, dubblegConnection, shareStore)
     }
 
     private var tts: TextToSpeech? = null
@@ -133,6 +137,7 @@ class StewardService : Service() {
                 if (session.winner != null) historyStore.appendIfNew(duneHistoryJson(session))
             }
         }
+        scope.launch { runDubblegStatsSync(dubblegConnection, shareStore, historyStore) }
         scope.launch { watchDuneTurnTimer() }
         scope.launch { watchDuneAutomatedPhases() }
         scope.launch { watchPanelUrls() }

@@ -1,0 +1,173 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dune Companion — example stats</title><style>:root {
+  --bg:        #111111;
+  --card:      #1a1a10;
+  --card2:     #161610;
+  --accent:    #14b8a6;
+  --accent-dim:#0d9488;
+  --text:      #f0e8d0;
+  --muted:     #888878;
+  --border:    #2a2a1a;
+}.stats-game{display:grid;grid-template-columns:minmax(0,1fr);gap:1.2rem;margin-top:1.2rem}.stats-game>*{min-width:0}.stats-game+.stats-game{margin-top:3rem}.stats-title{font:2rem 'Bebas Neue',sans-serif;letter-spacing:.05em;margin:.2rem 0;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}.stats-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:.45rem;flex:none}.stats-title .stats-swatch{width:12px;height:28px;margin:0}.stats-standings{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.6rem}.stats-standings li{display:flex;align-items:center;gap:.2rem;border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem}.stats-standings li:first-child{border-color:var(--accent)}.stats-standings li span:last-child{color:var(--muted);margin-left:.5rem;font-size:.85rem}.stats-superlatives{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.2rem}.stats-superlatives small{display:block;color:var(--muted);text-transform:uppercase;font-size:.68rem;letter-spacing:.1em}.stats-superlatives strong{display:block;font:2rem 'Bebas Neue',sans-serif;letter-spacing:.05em;margin:.2rem 0}.stats-superlatives span{color:var(--muted);font-size:.86rem}.stats-heading{font:1.5rem 'Bebas Neue',sans-serif;letter-spacing:.06em;margin:0 0 1rem}.stats-table-wrap{overflow-x:auto}.stats-table{width:100%;border-collapse:collapse;font-size:.88rem;white-space:nowrap}.stats-table th{text-align:left;color:var(--muted);text-transform:uppercase;font:700 .68rem 'Rajdhani',sans-serif;letter-spacing:.1em;padding:.4rem .6rem;border-bottom:1px solid var(--border)}.stats-table td{padding:.55rem .6rem;border-bottom:1px solid var(--border)}.stats-table td:first-child{font-weight:700}.stats-note{margin:.9rem 0 0}.stats-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.2rem}.stats-pair>*{min-width:0}.stats-chart{width:100%;height:auto;display:block}.stats-grid{stroke:var(--border);stroke-width:1}.stats-axis{fill:var(--muted);font-size:10px}.stats-legend{list-style:none;margin:.8rem 0 0;padding:0;display:flex;flex-wrap:wrap;gap:.4rem 1rem;font-size:.85rem}.stats-legend li{display:flex;align-items:center}.stats-legend strong{margin-left:.35rem}.stats-rounds{list-style:none;margin:0;padding:0;display:grid;gap:.4rem}.stats-rounds li{display:grid;grid-template-columns:2.2rem 1fr 3.4rem;align-items:center;gap:.5rem;font-size:.8rem}.stats-rounds li>span{color:var(--muted)}.stats-rounds li>div{background:var(--bg);border-radius:3px;height:12px;overflow:hidden;display:flex}.stats-rounds i{display:block;height:100%}.stats-rounds i.is-agent,.stats-agent{background:var(--accent);opacity:.8}.stats-rounds i.is-reveal,.stats-reveal{background:var(--muted);opacity:.7}.stats-rounds li.is-slowest i{opacity:1}.stats-rounds li.is-slowest>span{color:var(--accent)}.stats-rounds small{text-align:right;color:var(--muted)}.stats-rounds li.is-slowest small{color:var(--accent)}.stats-kinds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.2rem}.stats-kind{background:var(--bg);border-radius:6px;padding:1rem}.stats-kind>small{display:block;color:var(--muted);text-transform:uppercase;font-size:.68rem;letter-spacing:.1em}.stats-kind>strong{display:block;font:2rem 'Bebas Neue',sans-serif;letter-spacing:.05em;margin:.2rem 0 .6rem}.stats-kind>strong span{font:400 .8rem 'Inter',sans-serif;color:var(--muted);letter-spacing:0}.stats-kind dl{margin:0;display:grid;gap:.35rem;font-size:.85rem}.stats-kind dl div{display:flex;gap:.6rem}.stats-kind dt{color:var(--muted);min-width:4.2rem}.stats-kind dd{margin:0}@media(max-width:760px){.stats-kinds,.stats-superlatives,.stats-pair{grid-template-columns:minmax(0,1fr)}.stats-recap{padding-left:0!important;padding-right:0!important}.stats-title{font-size:1.6rem}}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif;padding:28px 16px}.container{max-width:1000px;margin:auto}.live-card{background:var(--surface,#1b1b11);border:1px solid var(--border);border-radius:9px;padding:24px}.stats-head{display:grid;gap:16px}.live-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.live-stats>div{background:var(--bg);padding:14px;border-radius:6px}.live-stats small,.section-label{display:block;text-transform:uppercase;letter-spacing:.15em;font-size:11px;color:var(--accent)}.live-stats strong{display:block;margin-top:8px;font-size:20px}.example-note{color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 24px}.stats-game{margin-top:0}h1,h2,h3{font-family:Arial,sans-serif}</style><main class="container"><p class="example-note">DUNE COMPANION · Example finished-game stats. Names replaced with seat colors; date and game link removed. Timings and scores retained.</p><section class="stats-game" id="example-game">
+  <div class="live-card stats-head">
+    <p class="section-label">Example game · anonymized seats</p>
+    <h2 class="stats-title">
+      <span class="stats-swatch" style="background:#4778ae"></span>Blue wins Dune Imperium
+    </h2>
+    <div class="live-stats">
+      <div><small>Game time</small><strong>3h 26m</strong></div>
+      <div><small>Rounds</small><strong>10</strong></div>
+      <div><small>Turns</small><strong>119</strong></div>
+      <div><small>Avg turn</small><strong>1:33</strong></div>
+    </div>
+
+    <ol class="stats-standings">
+
+      <li><span class="stats-swatch" style="background:#4778ae"></span><strong>Blue</strong><span>11 VP</span></li>
+
+      <li><span class="stats-swatch" style="background:#b7473f"></span><strong>Red</strong><span>9 VP</span></li>
+
+      <li><span class="stats-swatch" style="background:#5f8f5a"></span><strong>Green</strong><span>7 VP</span></li>
+
+      <li><span class="stats-swatch" style="background:#cfaa46"></span><strong>Yellow</strong><span>6 VP</span></li>
+
+    </ol>
+
+  </div>
+
+  <div class="stats-superlatives">
+    <div class="live-card"><small>Longest turn</small><strong>4:54</strong><span>Blue · round 7</span></div>
+    <div class="live-card"><small>Quickest on average</small><strong>1:09</strong><span>Green</span></div>
+    <div class="live-card"><small>Slowest round</small><strong>29:11</strong><span>Round 7</span></div>
+  </div>
+
+  <div class="live-card">
+    <h3 class="stats-heading">Who spent the time</h3>
+    <div class="stats-table-wrap">
+      <table class="stats-table">
+        <thead><tr><th>Seat</th><th>Turns</th><th>Total</th><th>Share</th><th>Avg</th><th>Longest</th><th>Agent avg</th><th>Reveal avg</th></tr></thead>
+        <tbody>
+
+          <tr>
+            <td><span class="stats-swatch" style="background:#b7473f"></span>Red</td>
+            <td>31</td><td>1h 03m</td><td>34%</td><td>2:02</td>
+            <td>4:31</td><td>2:25</td><td>0:56</td>
+          </tr>
+
+          <tr>
+            <td><span class="stats-swatch" style="background:#4778ae"></span>Blue</td>
+            <td>29</td><td>47:59</td><td>26%</td><td>1:39</td>
+            <td>4:54</td><td>1:55</td><td>0:56</td>
+          </tr>
+
+          <tr>
+            <td><span class="stats-swatch" style="background:#cfaa46"></span>Yellow</td>
+            <td>29</td><td>39:36</td><td>21%</td><td>1:21</td>
+            <td>4:00</td><td>1:41</td><td>0:29</td>
+          </tr>
+
+          <tr>
+            <td><span class="stats-swatch" style="background:#5f8f5a"></span>Green</td>
+            <td>30</td><td>34:59</td><td>19%</td><td>1:09</td>
+            <td>4:23</td><td>1:16</td><td>0:52</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+    <p class="live-muted stats-note">Paused time is left out.</p>
+  </div>
+
+  <div class="live-card">
+    <h3 class="stats-heading">Agent vs reveal</h3>
+    <div class="stats-kinds">
+
+      <div class="stats-kind">
+        <small>Agent turns</small>
+        <strong>1:50 <span>avg</span></strong>
+        <dl>
+          <div><dt>Turns</dt><dd>87</dd></div>
+          <div><dt>Total</dt><dd>2h 39m · 86%</dd></div>
+          <div><dt>Longest</dt><dd>4:54 · Blue, round 7</dd></div>
+        </dl>
+      </div>
+
+      <div class="stats-kind">
+        <small>Reveal turns</small>
+        <strong>0:48 <span>avg</span></strong>
+        <dl>
+          <div><dt>Turns</dt><dd>32</dd></div>
+          <div><dt>Total</dt><dd>26:03 · 14%</dd></div>
+          <div><dt>Longest</dt><dd>2:06 · Red, round 7</dd></div>
+        </dl>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="stats-pair">
+
+    <div class="live-card">
+      <h3 class="stats-heading">Victory points</h3>
+      <svg class="stats-chart" viewBox="0 0 320 180" role="img" aria-label="Victory points after each scored conflict">
+
+        <line x1="26" x2="306" y1="154.0" y2="154.0" class="stats-grid"/>
+        <text x="20" y="157.0" text-anchor="end" class="stats-axis">0</text>
+
+        <line x1="26" x2="306" y1="106.7" y2="106.7" class="stats-grid"/>
+        <text x="20" y="109.7" text-anchor="end" class="stats-axis">5</text>
+
+        <line x1="26" x2="306" y1="59.3" y2="59.3" class="stats-grid"/>
+        <text x="20" y="62.3" text-anchor="end" class="stats-axis">10</text>
+
+        <line x1="26" x2="306" y1="12.0" y2="12.0" class="stats-grid"/>
+        <text x="20" y="15.0" text-anchor="end" class="stats-axis">15</text>
+
+
+        <text x="166.0" y="172" text-anchor="middle" class="stats-axis">C5</text>
+
+        <text x="306.0" y="172" text-anchor="middle" class="stats-axis">C10</text>
+
+
+        <polyline points="26.0,154.0 166.0,97.2 306.0,49.9" fill="none" stroke="#4778ae" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="166.0" cy="97.2" r="3.5" fill="#4778ae"><title>Blue: 6 VP after conflict 5</title></circle><circle cx="306.0" cy="49.9" r="3.5" fill="#4778ae"><title>Blue: 11 VP after conflict 10</title></circle>
+
+        <polyline points="26.0,154.0 166.0,116.1 306.0,97.2" fill="none" stroke="#cfaa46" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="166.0" cy="116.1" r="3.5" fill="#cfaa46"><title>Yellow: 4 VP after conflict 5</title></circle><circle cx="306.0" cy="97.2" r="3.5" fill="#cfaa46"><title>Yellow: 6 VP after conflict 10</title></circle>
+
+        <polyline points="26.0,154.0 166.0,135.1 306.0,87.7" fill="none" stroke="#5f8f5a" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="166.0" cy="135.1" r="3.5" fill="#5f8f5a"><title>Green: 2 VP after conflict 5</title></circle><circle cx="306.0" cy="87.7" r="3.5" fill="#5f8f5a"><title>Green: 7 VP after conflict 10</title></circle>
+
+        <polyline points="26.0,154.0 166.0,106.7 306.0,68.8" fill="none" stroke="#b7473f" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="166.0" cy="106.7" r="3.5" fill="#b7473f"><title>Red: 5 VP after conflict 5</title></circle><circle cx="306.0" cy="68.8" r="3.5" fill="#b7473f"><title>Red: 9 VP after conflict 10</title></circle>
+
+      </svg>
+      <ul class="stats-legend">
+        <li><span class="stats-swatch" style="background:#4778ae"></span>Blue <strong>11</strong></li><li><span class="stats-swatch" style="background:#cfaa46"></span>Yellow <strong>6</strong></li><li><span class="stats-swatch" style="background:#5f8f5a"></span>Green <strong>7</strong></li><li><span class="stats-swatch" style="background:#b7473f"></span>Red <strong>9</strong></li>
+      </ul>
+    </div>
+
+    <div class="live-card">
+      <h3 class="stats-heading">Time per round</h3>
+      <ol class="stats-rounds">
+
+        <li class="" title="Agent 15:18 · Reveal 2:13"><span>R1</span><div><i class="is-agent" style="width:52.4%"></i><i class="is-reveal" style="width:7.6%"></i></div><small>17:31</small></li>
+
+        <li class="" title="Agent 18:31 · Reveal 1:42"><span>R2</span><div><i class="is-agent" style="width:63.5%"></i><i class="is-reveal" style="width:5.8%"></i></div><small>20:13</small></li>
+
+        <li class="" title="Agent 17:00 · Reveal 3:56"><span>R3</span><div><i class="is-agent" style="width:58.3%"></i><i class="is-reveal" style="width:13.5%"></i></div><small>20:56</small></li>
+
+        <li class="" title="Agent 22:01 · Reveal 4:17"><span>R4</span><div><i class="is-agent" style="width:75.5%"></i><i class="is-reveal" style="width:14.7%"></i></div><small>26:18</small></li>
+
+        <li class="" title="Agent 21:57 · Reveal 2:24"><span>R5</span><div><i class="is-agent" style="width:75.2%"></i><i class="is-reveal" style="width:8.2%"></i></div><small>24:22</small></li>
+
+        <li class="" title="Agent 17:58 · Reveal 4:27"><span>R6</span><div><i class="is-agent" style="width:61.6%"></i><i class="is-reveal" style="width:15.3%"></i></div><small>22:26</small></li>
+
+        <li class="is-slowest" title="Agent 25:24 · Reveal 3:47"><span>R7</span><div><i class="is-agent" style="width:87.0%"></i><i class="is-reveal" style="width:13.0%"></i></div><small>29:11</small></li>
+
+        <li class="" title="Agent 21:33 · Reveal 3:15"><span>R8</span><div><i class="is-agent" style="width:73.8%"></i><i class="is-reveal" style="width:11.1%"></i></div><small>24:48</small></li>
+
+      </ol>
+      <ul class="stats-legend"><li><span class="stats-swatch stats-agent"></span>Agent</li><li><span class="stats-swatch stats-reveal"></span>Reveal</li></ul>
+    </div>
+  </div>
+</section></main></html>

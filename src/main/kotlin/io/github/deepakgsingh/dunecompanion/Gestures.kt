@@ -164,19 +164,23 @@ fun SpinTracker.ownsMotion(nowMs: Long): Boolean =
     (abs(degrees) >= SPIN_OWNS_MOTION_DEGREES && nowMs - lastMovingAtMs < SPIN_DIRECTION_PAUSE_MS) ||
         (lastFiredAtMs != 0L && nowMs - lastFiredAtMs < SPIN_SHAKE_QUIET_MS)
 
-/**
- * Counts taps on the display toward the on-screen fallback for ending an agent turn.
- *
- * Three quick taps rather than two: the display phone is handled all game, and two touches in
- * quick succession are easy to make by accident while picking it up or straightening it.
- */
+/** A double tap waits for the gap to expire; a third tap selects reveal instead. */
+enum class TapAction { AGENT, REVEAL }
+
 data class TapCounter(val count: Int = 0, val lastTapAtMs: Long = 0L) {
-    /** Returns the updated counter and whether this tap completes a triple tap. */
     fun observe(nowMs: Long): Pair<TapCounter, Boolean> {
-        val continues = count > 0 && nowMs - lastTapAtMs <= TRIPLE_TAP_GAP_MS
+        val continues = count > 0 && nowMs - lastTapAtMs in 0..TRIPLE_TAP_GAP_MS
         val next = if (continues) count + 1 else 1
-        return if (next >= 3) TapCounter() to true else TapCounter(next, nowMs) to false
+        return TapCounter(next.coerceAtMost(4), nowMs) to (next == 3)
     }
+
+    fun resolve(nowMs: Long): TapAction? =
+        if (nowMs - lastTapAtMs < TRIPLE_TAP_GAP_MS) null
+        else when (count) {
+            2 -> TapAction.AGENT
+            3 -> TapAction.REVEAL
+            else -> null
+        }
 }
 
 enum class ShakeVerdict { WAIT, REVEAL, CANCEL }
